@@ -1,0 +1,109 @@
+1. Lista completa de telas do LifeOS (com Sidebar)
+Como você mudou para sidebar (melhor para caber mais telas e organizar hierarquia), a navegação principal agora é uma Sidebar lateral (ou drawer em mobile) + Stack para telas internas. Isso permite escalar sem bagunça.
+Sidebar Principal (6 seções grandes + sub-itens)
+Início
+
+Dashboard (Score Global + +Sessão rápida + Modo Crítico + Revisão Semanal + Previsão)
+
+Faculdade
+
+Lista de Matérias
+Detalhes de uma Matéria (atividades, faltas, média automática)
+Histórico de Notas Geral
+
+Inglês Fluente (aba dedicada)
+
+Dashboard Inglês (horas, speaking, streak, 500h)
+Registro de Sessão Inglês
+Simulados & Testes
+
+Mestre Programação (aba dedicada)
+
+Dashboard Programação (features, bugs, LeetCode, deploys)
+Meus Projetos
+Certificações
+Radar “Pronto para Vaga Internacional”
+
+Shape & Saúde
+
+Dashboard Shape (peso, IMC, streak treino)
+Registro Rápido de Peso / Treino
+Histórico Completo
+
+Plano 2031 (o cérebro do app)
+
+Visão Geral das 5 Fases
+Fase 1 – Faculdade + Skills
+Fase 2 – Shape
+Fase 3 – Espanha + Trabalho Remoto Excelente
+Fase 4 – Cidadania
+Fase 5 – Alemanha + Esposa
+Carreira Internacional (Gap + Status PRONTO/QUASE/NÃO)
+Previsão Detalhada (3 cenários + margem)
+
+Mais (seção leve no final da sidebar)
+
+Notas & Journal
+Finanças
+Freela (pipeline)
+Relacionamento (PIN protegido)
+Configurações + Backup + Modo Rico / Modo Rápido
+
+Telas Standalone / Modais (não aparecem na sidebar)
+
+Chat IA (só frases motivacionais)
+Editor de Nota (Markdown com preview)
+Configurações
+Add/Edit Sessão (fullscreen rápido)
+Add/Edit Matéria / Atividade
+Add/Edit Projeto / Certificação
+Revisão Semanal (card que aparece automático)
+
+2. Lista completa de funcionalidades que o app deve ter
+Funcionalidades Principais (o que o app FAZ)
+Entrada de Dados (máximo 8 segundos)
+
++Sessão Rápida (tipo + duração + qualidade + output) com botões +5min/+15min distração
+Registro de falta (+ / -) na Faculdade
+Registro rápido de peso, simulado inglês, feature/bug programação
+Tudo no Modo Rápido por padrão
+
+Inteligência Automática (coração do LifeOS)
+
+Score Global diário (cálculo local determinístico)
+Score por área (Faculdade, Inglês, Programação, Shape)
+Eficiência Operacional + Engajamento (com normalização de output)
+Consistência + Foco em Prioridades + Dia Válido
+Modo Crítico automático (visual + alertas)
+Anti-fraude (detecção de qualidade sempre alta, sessão muito longa, etc.)
+Cache de análises (não recalcula desnecessariamente)
+
+Automação Total
+
+Atividades da Faculdade mudam status e recalculam média sozinhas
+Progresso de todas metas (Inglês 500h, projetos deploy, candidaturas, etc.) 100% automático via sessões
+Radar Carreira Internacional atualiza sozinho
+Gap numérico sempre visível
+Revisão Semanal automática toda domingo (com maior desperdício + 1 ação obrigatória)
+
+Previsão e Motivação
+
+Previsão Espanha/Alemanha com 3 cenários + margem de erro
+Tendência ↑↓ no Score Global
+Correlações (só quando têm dados suficientes: ≥10 registros + diferença ≥15%)
+
+Organização e Controle
+
+Sidebar limpa e escalável
+Modo Rico / Modo Rápido (toggle global)
+Backup completo lifeos_backup.json
+Relacionamento protegido por PIN
+Todas telas com suporte a anexos, links, Markdown onde necessário
+
+Outras funcionalidades importantes
+
+Exportar/Importar dados
+Alertas locais (streak quebrado, 3 dias sem inglês, etc.)
+Haptics em todas ações importantes
+Suporte a edição retroativa de sessões (com log)
+Visual diferenciado no Modo Crítico (tela mais “séria”)

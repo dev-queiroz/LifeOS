@@ -1,0 +1,17 @@
+export const STORAGE_KEYS = {
+  SESSIONS: 'lifeos_sessions',
+  SUBJECTS: 'lifeos_subjects',
+  WEIGHT_LOGS: 'lifeos_weight_logs',
+  WORKOUT_LOGS: 'lifeos_workout_logs',
+  ENGLISH_SESSIONS: 'lifeos_english_sessions',
+  PROG_SESSIONS: 'lifeos_prog_sessions',
+  PROJECTS: 'lifeos_projects',
+  CERTIFICATIONS: 'lifeos_certifications',
+  NOTES: 'lifeos_notes',
+  FINANCES: 'lifeos_finances',
+  FREELANCE: 'lifeos_freelance',
+  RELATIONSHIP: 'lifeos_relationship',
+  SETTINGS: 'lifeos_settings',
+  WEEKLY_REVIEW: 'lifeos_weekly_review',
+  SIMULATIONS: 'lifeos_simulations',
+};
