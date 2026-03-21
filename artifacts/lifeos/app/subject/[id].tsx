@@ -72,9 +72,10 @@ export default function SubjectDetailScreen() {
     const act: Activity = {
       id: genId(),
       name: actName.trim(),
-      dueDate: actDue,
+      dueDate: actDue || new Date().toISOString().slice(0, 10),
       status: 'pending',
       weight: parseFloat(actWeight) || 1,
+      type: 'outro',
     };
     const updated = { ...subject, activities: [...subject.activities, act] };
     if (settings.haptics) await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);

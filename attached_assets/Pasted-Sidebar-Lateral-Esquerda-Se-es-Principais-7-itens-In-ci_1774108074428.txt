@@ -1,0 +1,186 @@
+Sidebar Lateral Esquerda – Seções Principais (7 itens)
+
+Início
+Ícone: home
+Tela principal: Dashboard
+Botões principais
+
+Sessão Rápida (botão grande azul central ou flutuante inferior) → abre tela rápida de sessão
+
+Chat IA (ícone cpu no header direito) → abre modal de frases motivacionais
+Configurações (ícone engrenagem ao lado do chat) → abre tela de settings
+
+Funcionalidades chave
+Score Global gigante (número + cor + seta tendência ↑↓ + média 7 dias)
+Status do dia (Verde/Amarelo/Vermelho) + texto “Modo Crítico” se ativado
+Cards rápidos das 5 áreas principais (clicáveis)
+Revisão Semanal (card automático aos domingos)
+Previsão Espanha/Alemanha (3 cenários + margem)
+Últimas sessões (lista pequena)
+
+Conexão
+Ponto central de pressão e visão geral; atualiza tudo em tempo real
+
+
+Faculdade
+Ícone: book
+Tela principal: Lista de Matérias
+Sub-tela: Detalhes de Matéria (clica em uma matéria)
+Botões principais
+
+Matéria (header direito da lista) → modal nova matéria
+
+
+Atividade (dentro de detalhes) → modal nova atividade
+
+
+/ - Faltas (botões rápidos ao lado do contador em cada card)
+
+Ver Atividades (botão grande no card da matéria) → abre lista completa
+
+Funcionalidades chave
+Card de matéria: cor, nome, código, semestre, professor, sala, horário, link syllabus, notas pessoais (Markdown)
+Faltas: contador atual/máximo + cor progressiva + histórico de datas
+Atividades: título, tipo, prazo, peso, nota, status (automático), progresso %, equipe, anexos, feedback
+Média parcial automática
+Próximos prazos destacados
+
+Conexão
+Contribui para Score Global (sessões tipo=faculdade contam como prioridade alta)
+
+
+Inglês Fluente
+Ícone: mic
+Tela principal: Dashboard Inglês
+Sub-tela: Registro de Simulado (botão inferior)
+Botões principais
+
+Sessão Inglês (botão grande central) → +Sessão pré-selecionado tipo=ingles
+
+Registrar Simulado (botão inferior) → campo nota de teste
+
+Funcionalidades chave
+Total horas + breakdown (speaking, palavras novas, simulados)
+Barra progresso 500h
+Streak de dias
+Últimas sessões listadas
+
+Conexão
+Atualiza Radar Carreira Internacional e Fase 1 do Plano 2031
+
+
+Mestre Programação
+Ícone: code
+Tela principal: Dashboard Programação
+Sub-telas: Meus Projetos | Certificações | Radar Vaga Internacional
+Botões principais
+
+Projeto / + Certificação (header direito)
+
+
+Sessão Programação (botão grande) → pré-selecionado tipo=programacao
+
+
+Funcionalidades chave
+Estatísticas automáticas: LeetCode, features, bugs, deploys
+Lista projetos: nome, tech stack, status, link repo, flag deploy acessível
+Certificações: nome, emissor, status, link
+Radar: PRONTO/QUASE/NÃO + Gap numérico
+
+Conexão
+Atualiza Fase 1 e Fase 3 do Plano 2031
+
+
+Shape & Saúde
+Ícone: activity
+Tela principal: Dashboard Shape
+Sub-telas: Registro Rápido | Histórico Completo
+Botões principais
+
+Peso (botão grande)
+
+
+Treino (ao lado) → pré-selecionado tipo=treino
+
+
+Água (+250 / +500ml)
+
+
+Funcionalidades chave
+Peso atual + IMC
+Streak treino
+Tracker água (meta 3L)
+Histórico peso + sessões treino
+
+Conexão
+Atualiza Fase 2 do Plano 2031
+
+
+Plano 2031
+Ícone: star
+Tela principal: Visão Geral
+Sub-telas: Cada uma das 5 fases (clicáveis) + Carreira Internacional + Previsão Detalhada
+Botões principais
+
+Meta / + Checklist (por fase)
+
+Atualizar Candidaturas (campo manual)
+
+Funcionalidades chave
+5 fases com progresso automático
+Status carreira integrado
+Gap numérico
+Previsão com 3 cenários + margem
+Checklists editáveis por fase
+
+Conexão
+Puxa dados de todas as abas
+
+
+Mais (rodapé da sidebar)
+Ícone: more-horizontal
+Sub-telas
+Notas & Journal
+Finanças
+Freela (pipeline)
+Relacionamento (PIN)
+Configurações
+
+Botões principais
+
+Nota / + Transação / + Prospecto / etc.
+
+
+Funcionalidades chave
+Notas: editor Markdown com preview
+Finanças: saldo, entradas/saídas
+Freela: pipeline clientes
+Relacionamento: datas, notas privadas (PIN)
+Configurações: modo Rico/Rápido, Groq key, backup
+
+
+
+Telas Modais / Standalone (sobrepostas, não na sidebar)
+
++ Sessão Rápida (fullscreen rápida)
+Campos: tipo (dropdown), duração, qualidade (0-10), output (texto curto)
+Botões: +5min/+15min Distração, Salvar
+Conexão: atualiza Score Global, streaks, gaps
+
+Chat IA (modal)
+Campo de texto + chips de prompts rápidos
+Botão: Enviar
+Só frases motivacionais (ex: “Você está no caminho da Espanha em 2028 se mantiver isso”)
+
+Editor de Nota
+Título + corpo Markdown + preview toggle
+Botões: Salvar, Deletar, Preview
+
+Configurações
+Toggle Modo Rico/Rápido
+Groq API key
+Export/Import backup
+Tema, notificações, etc.
+
+
+Essa é a lista exata e detalhada de todas as telas que o app deve ter agora.

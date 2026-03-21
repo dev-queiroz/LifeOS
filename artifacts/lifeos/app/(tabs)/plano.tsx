@@ -1,272 +1,241 @@
 import { Feather } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import {
+  Alert,
+  Modal,
   Platform,
-  Pressable,
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
+  TouchableOpacity,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Badge } from '@/components/ui/Badge';
+import { SidebarToggle } from '@/components/Sidebar';
 import { GlowCard } from '@/components/ui/GlowCard';
 import { ProgressBar } from '@/components/ui/ProgressBar';
-import { SectionHeader } from '@/components/ui/SectionHeader';
 import { Colors } from '@/constants/colors';
-import { useApp } from '@/context/AppContext';
+import type { PlanGoal } from '@/constants/types';
+import { genId, useApp } from '@/context/AppContext';
+import { forecast2031, planProgress } from '@/services/score';
 
 const PHASES = [
-  {
-    id: 1,
-    title: 'Fase 1: Faculdade + Skills',
-    period: '2024 — 2026',
-    color: Colors.cyan,
-    colorDim: Colors.cyanDim,
-    icon: 'book' as const,
-    milestones: [
-      'Formar na faculdade',
-      'Ingles B2+ (500h pratica)',
-      'Portfolio de projetos solidos',
-      'LeetCode 100+ problemas',
-      'Primeira certificacao tech',
-    ],
-    progress: 40,
-  },
-  {
-    id: 2,
-    title: 'Fase 2: Shape',
-    period: '2025 — 2026',
-    color: Colors.orange,
-    colorDim: Colors.orangeDim,
-    icon: 'activity' as const,
-    milestones: [
-      'Rotina de treino 4x/semana',
-      'Peso ideal + IMC saudavel',
-      'Disciplina fisica consolidada',
-    ],
-    progress: 30,
-  },
-  {
-    id: 3,
-    title: 'Fase 3: Espanha + Trabalho Remoto',
-    period: '2026 — 2028',
-    color: Colors.green,
-    colorDim: Colors.greenDim,
-    icon: 'globe' as const,
-    milestones: [
-      'Conseguir emprego remoto internacional',
-      'Mudar para Espanha',
-      'Ingles C1+ fluente',
-      'Salario em euros',
-    ],
-    progress: 5,
-  },
-  {
-    id: 4,
-    title: 'Fase 4: Cidadania',
-    period: '2028 — 2030',
-    color: Colors.purple,
-    colorDim: Colors.purpleDim,
-    icon: 'flag' as const,
-    milestones: [
-      'Cidadania espanhola',
-      'Estabilidade financeira',
-      'Rede de contatos europeia',
-    ],
-    progress: 0,
-  },
-  {
-    id: 5,
-    title: 'Fase 5: Alemanha + Esposa',
-    period: '2030 — 2031',
-    color: Colors.accent,
-    colorDim: Colors.accentDim,
-    icon: 'heart' as const,
-    milestones: [
-      'Mudar para Alemanha',
-      'Construir vida com parceira',
-      'LifeOS completo — Meta 2031',
-    ],
-    progress: 0,
-  },
+  { id: 1 as const, title: 'Fase 1: Faculdade + Skills', period: '2024 – 2026', color: Colors.cyan, colorDim: Colors.cyanDim, icon: 'book' as const, desc: 'Formar, inglês B2+, programar' },
+  { id: 2 as const, title: 'Fase 2: Shape + Estabilidade', period: '2026 – 2027', color: Colors.orange, colorDim: Colors.orangeDim, icon: 'activity' as const, desc: 'Saúde, freelas, reserva 6 meses' },
+  { id: 3 as const, title: 'Fase 3: Carreira Internacional', period: '2027 – 2029', color: Colors.purple, colorDim: Colors.purpleDim, icon: 'briefcase' as const, desc: 'Emprego remoto EUR 3k+/mês' },
+  { id: 4 as const, title: 'Fase 4: Relocation + Visto', period: '2029 – 2030', color: Colors.green, colorDim: Colors.greenDim, icon: 'map-pin' as const, desc: 'Processo Blue Card, mudança' },
+  { id: 5 as const, title: 'Fase 5: Berlim 2031', period: '2030 – 2031', color: Colors.accent, colorDim: Colors.accentDim, icon: 'star' as const, desc: 'Estabelecido na Alemanha' },
 ];
 
-const CAREER_ITEMS = [
-  { label: 'Ingles Fluente', key: 'ingles' },
-  { label: 'Porfolio GitHub', key: 'github' },
-  { label: 'Deploy em producao', key: 'deploy' },
-  { label: 'Certificacao', key: 'cert' },
-  { label: 'LeetCode 100+', key: 'leetcode' },
-  { label: 'Experiencia remota', key: 'remote' },
-];
+function AddGoalModal({ visible, phase, onClose, onSave }: {
+  visible: boolean;
+  phase: 1 | 2 | 3 | 4 | 5;
+  onClose: () => void;
+  onSave: (g: Omit<PlanGoal, 'id'>) => void;
+}) {
+  const insets = useSafeAreaInsets();
+  const [title, setTitle] = useState('');
+
+  const handleSave = () => {
+    if (!title.trim()) { Alert.alert('Título obrigatório'); return; }
+    onSave({ phase, title: title.trim(), done: false });
+    setTitle('');
+    onClose();
+  };
+
+  return (
+    <Modal visible={visible} animationType="slide" presentationStyle="pageSheet" onRequestClose={onClose}>
+      <View style={[styles.modal, { paddingTop: insets.top + 12 }]}>
+        <View style={styles.handle} />
+        <View style={styles.modalHeader}>
+          <Text style={styles.modalTitle}>Nova Meta — Fase {phase}</Text>
+          <TouchableOpacity onPress={onClose}><Feather name="x" size={20} color={Colors.textSecondary} /></TouchableOpacity>
+        </View>
+        <View style={styles.modalContent}>
+          <Text style={styles.fieldLabel}>Título</Text>
+          <TextInput
+            style={styles.input}
+            value={title}
+            onChangeText={setTitle}
+            placeholder="Ex: Atingir IELTS 7.0"
+            placeholderTextColor={Colors.textMuted}
+            autoFocus
+          />
+          <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+            <Text style={styles.saveBtnText}>Adicionar Meta</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </Modal>
+  );
+}
 
 export default function PlanoScreen() {
   const insets = useSafeAreaInsets();
-  const { englishSessions, progSessions, projects, certifications, workoutLogs } = useApp();
-  const [expandedPhase, setExpandedPhase] = useState<number | null>(1);
+  const { sessions, englishSessions, progSessions, planGoals, addPlanGoal, updatePlanGoal, deletePlanGoal } = useApp();
+  const [selectedPhase, setSelectedPhase] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
+  const [goalModal, setGoalModal] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
 
-  const totalEngHours = Math.round(englishSessions.reduce((acc, s) => acc + s.duration, 0) / 60);
-  const leetcodeCount = progSessions.filter((s) => s.type === 'leetcode').length;
-  const deployedCount = projects.filter((p) => p.status === 'deployed').length;
-  const certsCount = certifications.filter((c) => c.status === 'completed').length;
-
-  const careerReadiness = (
-    (totalEngHours >= 500 ? 1 : 0) +
-    (projects.length >= 3 ? 1 : 0) +
-    (deployedCount >= 1 ? 1 : 0) +
-    (certsCount >= 1 ? 1 : 0) +
-    (leetcodeCount >= 100 ? 1 : 0)
+  const phaseProgress = useMemo(
+    () => planProgress(sessions, englishSessions, progSessions),
+    [sessions, englishSessions, progSessions]
   );
 
-  const readinessPct = Math.round((careerReadiness / 5) * 100);
-  const readinessLabel = readinessPct >= 80 ? 'PRONTO' : readinessPct >= 50 ? 'QUASE' : 'EM PROGRESSO';
-  const readinessColor = readinessPct >= 80 ? Colors.green : readinessPct >= 50 ? Colors.orange : Colors.accent;
+  const forecast = useMemo(
+    () => forecast2031(sessions, englishSessions, progSessions),
+    [sessions, englishSessions, progSessions]
+  );
+
+  const overallProgress = Math.round(phaseProgress.reduce((a, b) => a + b, 0) / 5);
+  const yearsLeft = 2031 - new Date().getFullYear();
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 0) }]}>
+    <View style={styles.root}>
       <ScrollView
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={[styles.scroll, { paddingBottom: insets.bottom + 100 }]}
+        contentContainerStyle={[styles.scroll, { paddingTop: insets.top + (Platform.OS === 'web' ? 67 : 12) }]}
       >
-        <Text style={styles.screenTitle}>Plano 2031</Text>
-        <Text style={styles.screenSubtitle}>Do zero para Alemanha + vida dos sonhos</Text>
-
-        {/* Carreira Internacional */}
-        <SectionHeader title="Carreira Internacional" subtitle="Nivel atual de preparo" />
-        <GlowCard color={readinessColor}>
-          <View style={styles.readinessRow}>
-            <View style={{ flex: 1 }}>
-              <Text style={styles.readinessLabel}>Preparo Geral</Text>
-              <ProgressBar value={readinessPct} max={100} color={readinessColor} height={8} />
-              <Text style={[styles.readinessPct, { color: readinessColor }]}>{readinessPct}%</Text>
-            </View>
-            <Badge label={readinessLabel} color={readinessColor} bg={readinessColor + '20'} size="md" />
+        <View style={styles.header}>
+          <SidebarToggle color={Colors.accent} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.title, { color: Colors.accent }]}>Plano 2031</Text>
+            <Text style={styles.subtitle}>{yearsLeft} anos para Berlim • {overallProgress}% geral</Text>
           </View>
+        </View>
 
-          {CAREER_ITEMS.map((item) => {
-            const current =
-              item.key === 'ingles' ? totalEngHours >= 500
-                : item.key === 'leetcode' ? leetcodeCount >= 100
-                : item.key === 'deploy' ? deployedCount >= 1
-                : item.key === 'cert' ? certsCount >= 1
-                : item.key === 'github' ? projects.length >= 3
-                : false;
-            return (
-              <View key={item.key} style={styles.careerItem}>
-                <Feather
-                  name={current ? 'check-circle' : 'circle'}
-                  size={16}
-                  color={current ? Colors.green : Colors.textMuted}
-                />
-                <Text style={[styles.careerLabel, current && { color: Colors.green }]}>{item.label}</Text>
-              </View>
-            );
-          })}
-        </GlowCard>
-
-        {/* Fases */}
-        <SectionHeader title="As 5 Fases" subtitle="Visao completa do plano" />
-        {PHASES.map((phase) => (
-          <GlowCard key={phase.id} color={phase.color} padding={0}>
-            <Pressable
-              onPress={() => setExpandedPhase(expandedPhase === phase.id ? null : phase.id)}
-              style={styles.phaseHeader}
-            >
-              <View style={[styles.phaseIcon, { backgroundColor: phase.colorDim }]}>
-                <Feather name={phase.icon} size={18} color={phase.color} />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.phaseTitle}>{phase.title}</Text>
-                <Text style={styles.phasePeriod}>{phase.period}</Text>
-              </View>
-              <View style={styles.phaseRight}>
-                <Text style={[styles.phaseProgress, { color: phase.color }]}>{phase.progress}%</Text>
-                <Feather
-                  name={expandedPhase === phase.id ? 'chevron-up' : 'chevron-down'}
-                  size={16}
-                  color={Colors.textMuted}
-                />
-              </View>
-            </Pressable>
-
-            {expandedPhase === phase.id && (
-              <View style={styles.phaseBody}>
-                <ProgressBar value={phase.progress} max={100} color={phase.color} height={6} />
-                <View style={{ height: 12 }} />
-                {phase.milestones.map((m, i) => (
-                  <View key={i} style={styles.milestone}>
-                    <View style={[styles.milestoneDot, { backgroundColor: phase.color + '60' }]} />
-                    <Text style={styles.milestoneText}>{m}</Text>
-                  </View>
-                ))}
-              </View>
-            )}
-          </GlowCard>
-        ))}
-
-        {/* Previsao */}
-        <SectionHeader title="Previsao Detalhada" subtitle="3 cenarios de chegada" />
         <GlowCard color={Colors.accent}>
-          {[
-            { label: 'Otimista', year: '2027', desc: 'Score 80+, consistencia maxima', color: Colors.green },
-            { label: 'Base', year: '2028', desc: 'Score 60-80, progresso constante', color: Colors.accent },
-            { label: 'Pessimista', year: '2029', desc: 'Score <60, pausas e desvios', color: Colors.orange },
-          ].map((scenario) => (
-            <View key={scenario.label} style={styles.scenarioRow}>
-              <View style={[styles.scenarioDot, { backgroundColor: scenario.color }]} />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.scenarioLabel}>{scenario.label}</Text>
-                <Text style={styles.scenarioDesc}>{scenario.desc}</Text>
-              </View>
-              <Text style={[styles.scenarioYear, { color: scenario.color }]}>{scenario.year}</Text>
+          <Text style={styles.forecastTitle}>Previsão Chegada — Berlim 2031</Text>
+          <View style={styles.forecastRow}>
+            <View style={[styles.forecastItem, { borderColor: Colors.green + '50' }]}>
+              <Text style={[styles.forecastPct, { color: Colors.green }]}>{forecast.otimista}%</Text>
+              <Text style={styles.forecastLabel}>Otimista</Text>
             </View>
-          ))}
-        </GlowCard>
-
-        {/* Meta final */}
-        <GlowCard color={Colors.accentGlow} style={styles.finalGoal}>
-          <View style={styles.finalRow}>
-            <Feather name="flag" size={24} color={Colors.accentGlow} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.finalTitle}>Meta Final: 2031</Text>
-              <Text style={styles.finalDesc}>Vivendo na Alemanha, trabalho remoto excelente, com a mulher ideal, saudavel e financeiramente livre.</Text>
+            <View style={[styles.forecastItem, { borderColor: Colors.accent + '50', backgroundColor: Colors.accentDim + '40' }]}>
+              <Text style={[styles.forecastPct, { color: Colors.accent }]}>{forecast.realista}%</Text>
+              <Text style={styles.forecastLabel}>Realista</Text>
+            </View>
+            <View style={[styles.forecastItem, { borderColor: Colors.orange + '50' }]}>
+              <Text style={[styles.forecastPct, { color: Colors.orange }]}>{forecast.pessimista}%</Text>
+              <Text style={styles.forecastLabel}>Pessimista</Text>
             </View>
           </View>
+          <Text style={styles.forecastNote}>
+            {forecast.realista >= 80
+              ? '🟢 No caminho certo para 2031!'
+              : forecast.realista >= 50
+              ? '🟡 Progresso bom, acelere o ritmo.'
+              : '🔴 Precisa aumentar consistência urgentemente.'}
+          </Text>
         </GlowCard>
+
+        <Text style={styles.sectionTitle}>Fases</Text>
+        {PHASES.map((phase, i) => {
+          const pct = phaseProgress[i] ?? 0;
+          const goals = planGoals.filter((g) => g.phase === phase.id);
+          const doneGoals = goals.filter((g) => g.done).length;
+          const isExpanded = selectedPhase === phase.id;
+
+          return (
+            <View key={phase.id} style={styles.phaseWrapper}>
+              <TouchableOpacity
+                style={[styles.phaseCard, { borderColor: phase.color + '40', borderLeftColor: phase.color, borderLeftWidth: 3 }]}
+                onPress={() => setSelectedPhase(isExpanded ? null : phase.id)}
+                activeOpacity={0.8}
+              >
+                <View style={[styles.phaseIcon, { backgroundColor: phase.colorDim }]}>
+                  <Feather name={phase.icon} size={18} color={phase.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.phaseTitle, { color: phase.color }]}>{phase.title}</Text>
+                  <Text style={styles.phasePeriod}>{phase.period} · {phase.desc}</Text>
+                  <View style={styles.phaseProgressRow}>
+                    <ProgressBar value={pct} color={phase.color} height={6} />
+                    <Text style={[styles.phasePct, { color: phase.color }]}>{pct}%</Text>
+                  </View>
+                  {goals.length > 0 && (
+                    <Text style={styles.phaseGoalCount}>{doneGoals}/{goals.length} metas</Text>
+                  )}
+                </View>
+                <Feather name={isExpanded ? 'chevron-up' : 'chevron-down'} size={16} color={Colors.textMuted} />
+              </TouchableOpacity>
+
+              {isExpanded && (
+                <View style={[styles.phaseDetail, { backgroundColor: phase.colorDim + '30', borderColor: phase.color + '30' }]}>
+                  {goals.map((g) => (
+                    <View key={g.id} style={styles.goalRow}>
+                      <TouchableOpacity onPress={() => updatePlanGoal({ ...g, done: !g.done })}>
+                        <Feather name={g.done ? 'check-square' : 'square'} size={18} color={g.done ? phase.color : Colors.textMuted} />
+                      </TouchableOpacity>
+                      <Text style={[styles.goalTitle, g.done && styles.goalDone]}>{g.title}</Text>
+                      <TouchableOpacity onPress={() => deletePlanGoal(g.id)}>
+                        <Feather name="trash-2" size={13} color={Colors.textMuted} />
+                      </TouchableOpacity>
+                    </View>
+                  ))}
+                  <TouchableOpacity
+                    style={[styles.addGoalBtn, { borderColor: phase.color + '60' }]}
+                    onPress={() => setGoalModal(phase.id)}
+                  >
+                    <Feather name="plus" size={14} color={phase.color} />
+                    <Text style={[styles.addGoalText, { color: phase.color }]}>Adicionar meta</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          );
+        })}
+
+        <View style={{ height: 40 }} />
       </ScrollView>
+
+      {goalModal && (
+        <AddGoalModal
+          visible={true}
+          phase={goalModal}
+          onClose={() => setGoalModal(null)}
+          onSave={(g) => addPlanGoal(g)}
+        />
+      )}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: Colors.bg },
-  scroll: { paddingHorizontal: 20, paddingTop: 8 },
-  screenTitle: { fontSize: 28, fontFamily: 'Inter_700Bold', color: Colors.text, marginBottom: 4 },
-  screenSubtitle: { fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.textSecondary, marginBottom: 24 },
-  readinessRow: { flexDirection: 'row', alignItems: 'center', gap: 16, marginBottom: 16 },
-  readinessLabel: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary, marginBottom: 6 },
-  readinessPct: { fontSize: 12, fontFamily: 'Inter_600SemiBold', marginTop: 4 },
-  careerItem: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
-  careerLabel: { fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.textSecondary },
-  phaseHeader: { flexDirection: 'row', alignItems: 'center', gap: 12, padding: 16 },
-  phaseIcon: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
-  phaseTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.text },
-  phasePeriod: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textSecondary, marginTop: 2 },
-  phaseRight: { alignItems: 'center', gap: 4 },
-  phaseProgress: { fontSize: 13, fontFamily: 'Inter_700Bold' },
-  phaseBody: { paddingHorizontal: 16, paddingBottom: 16 },
-  milestone: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 5 },
-  milestoneDot: { width: 6, height: 6, borderRadius: 3 },
-  milestoneText: { fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.textSecondary },
-  scenarioRow: { flexDirection: 'row', alignItems: 'center', gap: 12, paddingVertical: 8 },
-  scenarioDot: { width: 10, height: 10, borderRadius: 5 },
-  scenarioLabel: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.text },
-  scenarioDesc: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textSecondary, marginTop: 2 },
-  scenarioYear: { fontSize: 22, fontFamily: 'Inter_700Bold' },
-  finalGoal: { marginTop: 4 },
-  finalRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 16 },
-  finalTitle: { fontSize: 18, fontFamily: 'Inter_700Bold', color: Colors.text, marginBottom: 6 },
-  finalDesc: { fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.textSecondary, lineHeight: 20 },
+  root: { flex: 1, backgroundColor: Colors.bg },
+  scroll: { paddingHorizontal: 16, paddingBottom: 20 },
+  header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
+  title: { fontSize: 22, fontFamily: 'Inter_700Bold' },
+  subtitle: { fontSize: 12, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
+  forecastTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary, marginBottom: 12 },
+  forecastRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  forecastItem: { flex: 1, borderRadius: 10, borderWidth: 1, padding: 12, alignItems: 'center' },
+  forecastPct: { fontSize: 22, fontFamily: 'Inter_700Bold' },
+  forecastLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
+  forecastNote: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
+  sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.text, marginBottom: 12, marginTop: 8 },
+  phaseWrapper: { marginBottom: 8 },
+  phaseCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, borderWidth: 1 },
+  phaseIcon: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
+  phaseTitle: { fontSize: 14, fontFamily: 'Inter_700Bold', marginBottom: 2 },
+  phasePeriod: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginBottom: 6 },
+  phaseProgressRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  phasePct: { fontSize: 12, fontFamily: 'Inter_700Bold', width: 36 },
+  phaseGoalCount: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginTop: 4 },
+  phaseDetail: { borderRadius: 12, borderWidth: 1, padding: 12, marginTop: 2, gap: 8 },
+  goalRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  goalTitle: { flex: 1, fontSize: 14, fontFamily: 'Inter_400Regular', color: Colors.text },
+  goalDone: { textDecorationLine: 'line-through', color: Colors.textMuted },
+  addGoalBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, marginTop: 4 },
+  addGoalText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
+  modal: { flex: 1, backgroundColor: Colors.bg },
+  handle: { width: 40, height: 4, backgroundColor: Colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
+  modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 },
+  modalTitle: { fontSize: 22, fontFamily: 'Inter_700Bold', color: Colors.text },
+  modalContent: { padding: 20, gap: 12 },
+  fieldLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary, marginBottom: 6, textTransform: 'uppercase' },
+  input: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, borderRadius: 10, padding: 12, color: Colors.text, fontFamily: 'Inter_400Regular', fontSize: 15 },
+  saveBtn: { backgroundColor: Colors.accent, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
+  saveBtnText: { color: Colors.white, fontSize: 16, fontFamily: 'Inter_700Bold' },
 });
