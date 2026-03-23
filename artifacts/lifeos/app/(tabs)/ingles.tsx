@@ -34,6 +34,16 @@ const SESSION_TYPES: { key: EnglishSession['type']; label: string; icon: string 
 
 const TARGET_HOURS = 500;
 
+const LEVELS = [
+  { min: 0, label: 'A1 (Iniciante)' },
+  { min: 40, label: 'A2 (Básico)' },
+  { min: 120, label: 'B1 (Intermediário)' },
+  { min: 250, label: 'B2 (Independente)' },
+  { min: 500, label: 'C1 (Fluente)' },
+];
+
+const PLATFORMS = ['Busuu', 'Duolingo', 'Italki', 'YouTube', 'Livros', 'Outros'];
+
 function AddSessionModal({ visible, onClose, onSave }: {
   visible: boolean;
   onClose: () => void;
@@ -42,6 +52,7 @@ function AddSessionModal({ visible, onClose, onSave }: {
   const insets = useSafeAreaInsets();
   const [type, setType] = useState<EnglishSession['type']>('speaking');
   const [duration, setDuration] = useState('60');
+  const [platform, setPlatform] = useState('Busuu');
   const [score, setScore] = useState('');
   const [notes, setNotes] = useState('');
 
@@ -51,6 +62,7 @@ function AddSessionModal({ visible, onClose, onSave }: {
     onSave({
       type,
       duration: dur,
+      platform,
       score: score ? parseFloat(score) : undefined,
       notes,
       date: new Date().toISOString(),
@@ -83,6 +95,18 @@ function AddSessionModal({ visible, onClose, onSave }: {
           </View>
           <Text style={styles.fieldLabel}>Duração (min)</Text>
           <TextInput style={styles.input} value={duration} onChangeText={setDuration} keyboardType="numeric" placeholderTextColor={Colors.textMuted} />
+          <Text style={styles.fieldLabel}>Plataforma</Text>
+          <View style={styles.typeGrid}>
+            {PLATFORMS.map((p) => (
+              <TouchableOpacity
+                key={p}
+                style={[styles.platformChip, platform === p && { backgroundColor: Colors.green + '25', borderColor: Colors.green }]}
+                onPress={() => setPlatform(p)}
+              >
+                <Text style={[styles.typeLabel, platform === p && { color: Colors.green }]}>{p}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
           <Text style={styles.fieldLabel}>Nota (opcional)</Text>
           <TextInput style={styles.input} value={score} onChangeText={setScore} keyboardType="numeric" placeholder="0-10" placeholderTextColor={Colors.textMuted} />
           <Text style={styles.fieldLabel}>Notas</Text>
@@ -157,9 +181,14 @@ export default function InglesScreen() {
 
   const engSimulations = simulations.filter((s) => s.type === 'ingles');
   const lastSim = engSimulations[0];
+  const totalSims = engSimulations.length;
   const avgSim = engSimulations.length > 0
     ? Math.round(engSimulations.reduce((a, s) => a + (s.score / s.maxScore) * 100, 0) / engSimulations.length)
     : null;
+
+  const currentLevel = useMemo(() => {
+    return [...LEVELS].reverse().find(l => totalHours >= l.min) || LEVELS[0];
+  }, [totalHours]);
 
   return (
     <View style={styles.root}>
@@ -171,8 +200,14 @@ export default function InglesScreen() {
           <SidebarToggle color={Colors.green} />
           <View style={{ flex: 1 }}>
             <Text style={[styles.title, { color: Colors.green }]}>Inglês Fluente</Text>
-            <Text style={styles.subtitle}>Meta: {TARGET_HOURS}h de prática</Text>
+            <Text style={styles.subtitle}>Nível Estimado: {currentLevel.label}</Text>
           </View>
+          <TouchableOpacity 
+            style={[styles.addBtn, { backgroundColor: Colors.greenDim, marginRight: 8 }]} 
+            onPress={() => router.push('/ingles/flashcards')}
+          >
+            <Feather name="layers" size={18} color={Colors.green} />
+          </TouchableOpacity>
           <TouchableOpacity style={[styles.addBtn, { backgroundColor: Colors.greenDim }]} onPress={() => setSessionModal(true)}>
             <Feather name="plus" size={18} color={Colors.green} />
           </TouchableOpacity>
@@ -183,7 +218,7 @@ export default function InglesScreen() {
           <View style={styles.statsRight}>
             <View style={styles.statBlock}>
               <Text style={[styles.statVal, { color: Colors.green }]}>{totalHours}h</Text>
-              <Text style={styles.statLabel}>Total</Text>
+              <Text style={styles.statLabel}>Total Prática</Text>
             </View>
             <View style={styles.statBlock}>
               <Text style={[styles.statVal, { color: Colors.cyan }]}>{speakingHours}h</Text>
@@ -191,11 +226,11 @@ export default function InglesScreen() {
             </View>
             <View style={styles.statBlock}>
               <Text style={[styles.statVal, { color: Colors.orange }]}>{streak}d</Text>
-              <Text style={styles.statLabel}>Streak</Text>
+              <Text style={styles.statLabel}>Streak Atual</Text>
             </View>
             <View style={styles.statBlock}>
-              <Text style={[styles.statVal, { color: Colors.purple }]}>{vocabSessions}</Text>
-              <Text style={styles.statLabel}>Vocab</Text>
+              <Text style={[styles.statVal, { color: Colors.purple }]}>{totalSims}</Text>
+              <Text style={styles.statLabel}>Simulados</Text>
             </View>
           </View>
         </View>
@@ -242,7 +277,10 @@ export default function InglesScreen() {
                 <Feather name={SESSION_TYPES.find((t) => t.key === s.type)?.icon as never ?? 'mic'} size={14} color={Colors.green} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.sessionType}>{SESSION_TYPES.find((t) => t.key === s.type)?.label ?? s.type}</Text>
+                <Text style={styles.sessionType}>
+                  {SESSION_TYPES.find((t) => t.key === s.type)?.label ?? s.type}
+                  {s.platform ? <Text style={styles.sessionPlatform}> · {s.platform}</Text> : ''}
+                </Text>
                 <Text style={styles.sessionMeta}>{s.duration}min{s.score !== undefined ? ` · ${s.score}/10` : ''}</Text>
               </View>
               <View style={styles.sessionRight}>
@@ -290,6 +328,7 @@ const styles = StyleSheet.create({
   sessionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: Colors.bgCard, borderRadius: 10, padding: 12, marginBottom: 6, borderWidth: 1, borderColor: Colors.border },
   sessionIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   sessionType: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.text },
+  sessionPlatform: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
   sessionMeta: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
   sessionRight: { alignItems: 'flex-end', gap: 4 },
   sessionDate: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
@@ -301,6 +340,7 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary, marginBottom: 6, textTransform: 'uppercase' },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgCard },
+  platformChip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgCard },
   typeLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.textMuted },
   input: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, borderRadius: 10, padding: 12, color: Colors.text, fontFamily: 'Inter_400Regular', fontSize: 15 },
   saveBtn: { backgroundColor: Colors.green, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },

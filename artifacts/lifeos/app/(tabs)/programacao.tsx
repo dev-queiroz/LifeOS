@@ -62,15 +62,25 @@ function AddSessionModal({ visible, onClose, onSave }: {
   onSave: (s: Omit<ProgSession, 'id'>) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { projects } = useApp();
+  const [projectId, setProjectId] = useState<string | undefined>();
   const [type, setType] = useState<ProgSession['type']>('feature');
   const [duration, setDuration] = useState('60');
   const [output, setOutput] = useState('');
+  const [link, setLink] = useState('');
 
   const handleSave = () => {
     const dur = parseInt(duration);
     if (!dur || dur < 5) { Alert.alert('Duração mínima: 5 min'); return; }
-    onSave({ type, duration: dur, output, date: new Date().toISOString() });
-    setDuration('60'); setOutput('');
+    onSave({ 
+      type, 
+      duration: dur, 
+      output, 
+      projectId,
+      link,
+      date: new Date().toISOString() 
+    });
+    setDuration('60'); setOutput(''); setLink('');
     onClose();
   };
 
@@ -98,6 +108,28 @@ function AddSessionModal({ visible, onClose, onSave }: {
           </View>
           <Text style={styles.fieldLabel}>Duração (min)</Text>
           <TextInput style={styles.input} value={duration} onChangeText={setDuration} keyboardType="numeric" placeholderTextColor={Colors.textMuted} />
+          <Text style={styles.fieldLabel}>Projeto (opcional)</Text>
+          <View style={styles.typeGrid}>
+            <TouchableOpacity
+              style={[styles.platformChip, !projectId && { backgroundColor: Colors.purple + '25', borderColor: Colors.purple }]}
+              onPress={() => setProjectId(undefined)}
+            >
+              <Text style={[styles.typeLabel, !projectId && { color: Colors.purple }]}>Nenhum</Text>
+            </TouchableOpacity>
+            {projects.map((p) => (
+              <TouchableOpacity
+                key={p.id}
+                style={[styles.platformChip, projectId === p.id && { backgroundColor: Colors.purple + '25', borderColor: Colors.purple }]}
+                onPress={() => setProjectId(p.id)}
+              >
+                <Text style={[styles.typeLabel, projectId === p.id && { color: Colors.purple }]}>{p.name}</Text>
+              </TouchableOpacity>
+            ))}
+          </View>
+
+          <Text style={styles.fieldLabel}>Link (PR/Commit/Repo)</Text>
+          <TextInput style={styles.input} value={link} onChangeText={setLink} placeholder="https://..." placeholderTextColor={Colors.textMuted} />
+
           <Text style={styles.fieldLabel}>Output</Text>
           <TextInput style={[styles.input, { minHeight: 60 }]} value={output} onChangeText={setOutput} multiline placeholder="O que entregou?" placeholderTextColor={Colors.textMuted} />
           <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
@@ -158,12 +190,12 @@ function AddProjectModal({ visible, onClose, onSave }: {
 
 export default function ProgramacaoScreen() {
   const insets = useSafeAreaInsets();
-  const { progSessions, addProgSession, deleteProgSession, projects, addProject, updateProject, deleteProject, certifications, addCertification, deleteCertification } = useApp();
+  const { progSessions, addProgSession, deleteProgSession, projects, addProject, updateProject, deleteProject, certifications, addCertification, updateCertification, deleteCertification } = useApp();
   const [activeTab, setActiveTab] = useState<TabKey>('stats');
   const [sessionModal, setSessionModal] = useState(false);
   const [projectModal, setProjectModal] = useState(false);
 
-  const stats = useMemo(() => calcProgStats(progSessions), [progSessions]);
+  const stats = useMemo(() => calcProgStats(progSessions, projects), [progSessions, projects]);
 
   const TABS: { key: TabKey; label: string }[] = [
     { key: 'stats', label: 'Stats' },
@@ -216,13 +248,15 @@ export default function ProgramacaoScreen() {
               {[
                 { label: 'LeetCode', value: stats.leetcode, color: Colors.orange, icon: 'cpu' },
                 { label: 'Features', value: stats.features, color: Colors.green, icon: 'git-branch' },
-                { label: 'Bug Fixes', value: stats.bugs, color: Colors.red, icon: 'alert-circle' },
-                { label: 'Deploys', value: deployedProjects, color: Colors.cyan, icon: 'upload-cloud' },
+                { label: 'Linguagem Top', value: stats.topLanguage, color: Colors.cyan, icon: 'code' },
+                { label: 'Streak Coding', value: `${stats.streak}d`, color: Colors.purple, icon: 'zap' },
               ].map((s) => (
                 <View key={s.label} style={styles.statCard}>
-                  <Feather name={s.icon as never} size={20} color={s.color} />
-                  <Text style={[styles.statVal, { color: s.color }]}>{s.value}</Text>
-                  <Text style={styles.statLabel}>{s.label}</Text>
+                   <View style={styles.statHeader}>
+                    <Feather name={s.icon as never} size={16} color={s.color} />
+                    <Text style={styles.statLabel}>{s.label}</Text>
+                   </View>
+                  <Text style={[styles.statVal, { color: s.color }]} numberOfLines={1}>{s.value}</Text>
                 </View>
               ))}
             </View>
@@ -387,15 +421,17 @@ const styles = StyleSheet.create({
   tabBtn: { flex: 1, paddingVertical: 8, borderRadius: 10, alignItems: 'center', borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgCard },
   tabLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: Colors.textMuted },
   statsGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 14 },
-  statCard: { width: '47%', backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, gap: 6, borderWidth: 1, borderColor: Colors.border },
-  statVal: { fontSize: 28, fontFamily: 'Inter_700Bold' },
-  statLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
+  statCard: { width: '47%', backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, gap: 4, borderWidth: 1, borderColor: Colors.border },
+  statHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  statVal: { fontSize: 22, fontFamily: 'Inter_700Bold' },
+  statLabel: { fontSize: 10, fontFamily: 'Inter_600SemiBold', color: Colors.textMuted, textTransform: 'uppercase' },
   sessionBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, paddingVertical: 12, borderRadius: 12, marginBottom: 14 },
   sessionBtnText: { color: Colors.white, fontSize: 14, fontFamily: 'Inter_700Bold' },
   sectionTitle: { fontSize: 15, fontFamily: 'Inter_700Bold', color: Colors.text, marginBottom: 10 },
   sessionRow: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: Colors.bgCard, borderRadius: 10, padding: 12, marginBottom: 6, borderWidth: 1, borderColor: Colors.border },
   sessionIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
   sessionType: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.text },
+  sessionProject: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
   sessionMeta: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
   sessionRight: { alignItems: 'flex-end', gap: 4 },
   sessionDate: { fontSize: 11, color: Colors.textMuted, fontFamily: 'Inter_400Regular' },
@@ -424,7 +460,8 @@ const styles = StyleSheet.create({
   fieldLabel: { fontSize: 12, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary, marginBottom: 6, textTransform: 'uppercase' },
   typeGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   typeChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 20, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgCard },
-  typeLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.textMuted },
+  platformChip: { paddingHorizontal: 10, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: Colors.border, backgroundColor: Colors.bgCard },
+  typeLabel: { fontSize: 11, fontFamily: 'Inter_500Medium', color: Colors.textMuted },
   input: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, borderRadius: 10, padding: 12, color: Colors.text, fontFamily: 'Inter_400Regular', fontSize: 15 },
   saveBtn: { backgroundColor: Colors.purple, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   saveBtnText: { color: Colors.white, fontSize: 16, fontFamily: 'Inter_700Bold' },

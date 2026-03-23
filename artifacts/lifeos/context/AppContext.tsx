@@ -12,6 +12,7 @@ import type {
   PlanGoal,
   Project,
   ProgSession,
+  Flashcard,
   Session,
   Settings,
   Simulation,
@@ -40,6 +41,7 @@ interface AppContextValue {
   freelance: FreelanceProject[];
   simulations: Simulation[];
   planGoals: PlanGoal[];
+  flashcards: Flashcard[];
   settings: Settings;
   globalScore: GlobalScore;
   loading: boolean;
@@ -95,6 +97,9 @@ interface AppContextValue {
   addPlanGoal: (g: Omit<PlanGoal, 'id'>) => Promise<void>;
   updatePlanGoal: (g: PlanGoal) => Promise<void>;
   deletePlanGoal: (id: string) => Promise<void>;
+
+  addFlashcard: (f: Omit<Flashcard, 'id' | 'createdAt'>) => Promise<void>;
+  deleteFlashcard: (id: string) => Promise<void>;
 
   updateSettings: (s: Partial<Settings>) => Promise<void>;
 
@@ -182,12 +187,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [freelance, setFreelance] = useState<FreelanceProject[]>([]);
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [planGoals, setPlanGoals] = useState<PlanGoal[]>([]);
+  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
   const [settings, setSettings] = useState<Settings>({ quickMode: true, haptics: true });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const init = async () => {
-      const [s, sub, w, wo, wl, es, ps, proj, certs, n, fin, free, sims, goals, set] =
+      const [s, sub, w, wo, wl, es, ps, proj, certs, n, fin, free, sims, goals, flash, set] =
         await Promise.all([
           load<Session[]>(STORAGE_KEYS.SESSIONS, []),
           load<Subject[]>(STORAGE_KEYS.SUBJECTS, []),
@@ -203,6 +209,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           load<FreelanceProject[]>(STORAGE_KEYS.FREELANCE, []),
           load<Simulation[]>(STORAGE_KEYS.SIMULATIONS, []),
           load<PlanGoal[]>('plan_goals', []),
+          load<Flashcard[]>(STORAGE_KEYS.FLASHCARDS, []),
           load<Settings>(STORAGE_KEYS.SETTINGS, { quickMode: true, haptics: true }),
         ]);
       setSessions(s);
@@ -219,6 +226,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setFreelance(free);
       setSimulations(sims);
       setPlanGoals(goals);
+      setFlashcards(flash);
       setSettings(set);
       setLoading(false);
     };
@@ -537,6 +545,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const addFlashcard = useCallback(async (f: Omit<Flashcard, 'id' | 'createdAt'>) => {
+    setFlashcards((prev) => {
+      const next = [{ ...f, id: genId(), createdAt: new Date().toISOString() }, ...prev];
+      save(STORAGE_KEYS.FLASHCARDS, next);
+      return next;
+    });
+  }, []);
+
+  const deleteFlashcard = useCallback(async (id: string) => {
+    setFlashcards((prev) => {
+      const next = prev.filter((x) => x.id !== id);
+      save(STORAGE_KEYS.FLASHCARDS, next);
+      return next;
+    });
+  }, []);
+
   const updateSettings = useCallback(async (s: Partial<Settings>) => {
     setSettings((prev) => {
       const next = { ...prev, ...s };
@@ -557,7 +581,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     () => ({
       sessions, subjects, weightLogs, workoutLogs, waterLogs, englishSessions,
       progSessions, projects, certifications, notes, finances, freelance,
-      simulations, planGoals, settings, globalScore, loading,
+      simulations, planGoals, flashcards, settings, globalScore, loading,
       addSession, updateSession, deleteSession,
       addSubject, updateSubject, deleteSubject,
       addAbsence, removeAbsence,
@@ -573,12 +597,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addFreelance, updateFreelance, deleteFreelance,
       addSimulation, deleteSimulation,
       addPlanGoal, updatePlanGoal, deletePlanGoal,
+      addFlashcard, deleteFlashcard,
       updateSettings, getDayStatus,
     }),
     [
       sessions, subjects, weightLogs, workoutLogs, waterLogs, englishSessions,
       progSessions, projects, certifications, notes, finances, freelance,
-      simulations, planGoals, settings, globalScore, loading,
+      simulations, planGoals, flashcards, settings, globalScore, loading,
       addSession, updateSession, deleteSession,
       addSubject, updateSubject, deleteSubject,
       addAbsence, removeAbsence,
@@ -594,6 +619,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addFreelance, updateFreelance, deleteFreelance,
       addSimulation, deleteSimulation,
       addPlanGoal, updatePlanGoal, deletePlanGoal,
+      addFlashcard, deleteFlashcard,
       updateSettings, getDayStatus,
     ]
   );

@@ -14,4 +14,5 @@ export const STORAGE_KEYS = {
   SETTINGS: 'lifeos_settings',
   WEEKLY_REVIEW: 'lifeos_weekly_review',
   SIMULATIONS: 'lifeos_simulations',
+  FLASHCARDS: 'lifeos_flashcards',
 };

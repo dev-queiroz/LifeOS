@@ -36,7 +36,7 @@ const AREA_ROUTES: Record<string, string> = {
   ingles: '/(tabs)/ingles',
   programacao: '/(tabs)/programacao',
   shape: '/(tabs)/shape',
-  plano2031: '/(tabs)/plano',
+  plano: '/(tabs)/plano',
 };
 
 const AREA_COLORS: Record<string, string> = {
@@ -44,7 +44,7 @@ const AREA_COLORS: Record<string, string> = {
   ingles: Colors.green,
   programacao: Colors.purple,
   shape: Colors.orange,
-  plano2031: Colors.accent,
+  plano: Colors.accent,
 };
 
 const AREA_ICONS: Record<string, string> = {
@@ -52,7 +52,7 @@ const AREA_ICONS: Record<string, string> = {
   ingles: 'mic',
   programacao: 'code',
   shape: 'activity',
-  plano2031: 'star',
+  plano: 'star',
 };
 
 const AREA_LABELS: Record<string, string> = {
@@ -60,12 +60,12 @@ const AREA_LABELS: Record<string, string> = {
   ingles: 'Inglês',
   programacao: 'Programação',
   shape: 'Shape',
-  plano2031: 'Plano 2031',
+  plano: 'Plano 2032',
 };
 
 export default function Dashboard() {
   const insets = useSafeAreaInsets();
-  const { globalScore, sessions, englishSessions, workoutLogs, progSessions } = useApp();
+  const { globalScore, sessions, englishSessions, workoutLogs, progSessions, subjects, projects, weightLogs } = useApp();
   const [modalVisible, setModalVisible] = useState(false);
 
   const today = new Date();
@@ -107,14 +107,37 @@ export default function Dashboard() {
 
   const ptDate = today.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
 
-  const areas = ['faculdade', 'ingles', 'programacao', 'shape', 'plano2031'];
   const areaValues: Record<string, number> = {
     faculdade: globalScore.faculdade.value,
     ingles: globalScore.ingles.value,
     programacao: globalScore.programacao.value,
     shape: globalScore.shape.value,
-    plano2031: Math.round((globalScore.faculdade.value + globalScore.ingles.value + globalScore.programacao.value) / 3),
+    plano: Math.round((globalScore.faculdade.value + globalScore.ingles.value + globalScore.programacao.value) / 3),
   };
+
+  const areaMetrics = useMemo(() => {
+    const facDept = subjects.reduce((a, s) => a + s.absences, 0);
+    const facPending = subjects.reduce((a, s) => a + s.activities.filter(ac => ac.status === 'pending').length, 0);
+    const engHoursCount = Math.round(englishSessions.reduce((a, s) => a + s.duration, 0) / 60);
+    const engLevel = engHoursCount > 200 ? 'B2' : engHoursCount > 100 ? 'B1' : 'A2';
+    const activeProjs = projects.filter(p => p.status === 'building').length;
+    const totalDeploys = progSessions.filter(s => s.type === 'deploy').length;
+    const codedToday = progSessions.some(s => s.date === todayKey);
+    const lastWeight = weightLogs[0]?.weight ?? 0;
+    const startWeight = weightLogs[weightLogs.length - 1]?.weight ?? lastWeight;
+    const weightVar = (lastWeight - startWeight).toFixed(1);
+    const trainedToday = workoutLogs.some(w => w.date === todayKey);
+
+    return {
+      faculdade: `${facPending} pendentes · ${facDept} faltas`,
+      ingles: `${engLevel} · ${engStreak}d · ${engHoursCount}h`,
+      programacao: `${activeProjs} ativos · ${totalDeploys} deploys · ${codedToday ? '✓' : '✗'}`,
+      shape: `${lastWeight}kg (${Number(weightVar) > 0 ? '+' : ''}${weightVar}) · ${workoutStreak}d · ${trainedToday ? '✓' : '✗'}`,
+      plano: `Meta: Munique 2032`,
+    };
+  }, [subjects, englishSessions, engStreak, projects, progSessions, todayKey, weightLogs, workoutLogs, workoutStreak]);
+
+  const areas = ['faculdade', 'ingles', 'programacao', 'shape', 'plano'];
 
   const bgColor = globalScore.criticalMode ? '#0E0A0A' : Colors.bg;
   const cardBg = globalScore.criticalMode ? '#1A0A0A' : Colors.bgCard;
@@ -131,14 +154,15 @@ export default function Dashboard() {
         <View style={styles.header}>
           <SidebarToggle />
           <View style={styles.headerCenter}>
-            <Text style={styles.greeting}>Olá 👋</Text>
+            <Text style={styles.greeting}>Olá, Douglas! 👋</Text>
             <Text style={styles.date}>{ptDate}</Text>
           </View>
-          <View style={[styles.dayDot, { backgroundColor: dayStatusColor + '30', borderColor: dayStatusColor }]}>
-            <Text style={[styles.dayDotText, { color: dayStatusColor }]}>
-              {todayStatus.status === 'green' ? '●' : todayStatus.status === 'yellow' ? '◑' : '○'}
-            </Text>
-          </View>
+          <TouchableOpacity onPress={() => router.push('/modal/chat-ia')} style={styles.headerIconBtn}>
+            <Feather name="cpu" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/modal/configuracoes')} style={styles.headerIconBtn}>
+            <Feather name="settings" size={20} color={Colors.textSecondary} />
+          </TouchableOpacity>
         </View>
 
         {globalScore.criticalMode && (
@@ -169,37 +193,26 @@ export default function Dashboard() {
 
         <View style={styles.scoreBreakdown}>
           <View style={styles.scoreItem}>
-            <Text style={styles.scoreItemLabel}>Consist.</Text>
+            <Text style={styles.scoreItemLabel}>Consistência</Text>
             <Text style={[styles.scoreItemVal, { color: globalScore.consistency >= 60 ? Colors.green : Colors.orange }]}>
-              {globalScore.consistency}
+              {globalScore.consistency}%
             </Text>
           </View>
           <View style={styles.scoreItem}>
-            <Text style={styles.scoreItemLabel}>Eficiên.</Text>
+            <Text style={styles.scoreItemLabel}>Eficiência</Text>
             <Text style={[styles.scoreItemVal, { color: globalScore.efficiency >= 60 ? Colors.green : Colors.orange }]}>
-              {globalScore.efficiency}
+              {globalScore.efficiency}%
             </Text>
           </View>
           <View style={styles.scoreItem}>
             <Text style={styles.scoreItemLabel}>Foco</Text>
             <Text style={[styles.scoreItemVal, { color: globalScore.focus >= 60 ? Colors.green : Colors.orange }]}>
-              {globalScore.focus}
+              {globalScore.focus}%
             </Text>
-          </View>
-          <View style={styles.scoreItem}>
-            <Text style={styles.scoreItemLabel}>Streak</Text>
-            <Text style={[styles.scoreItemVal, { color: Colors.accent }]}>{engStreak}d</Text>
           </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.quickBtn}
-          onPress={() => setModalVisible(true)}
-          activeOpacity={0.8}
-        >
-          <Feather name="plus" size={20} color={Colors.white} />
-          <Text style={styles.quickBtnText}>+ Sessão Rápida</Text>
-        </TouchableOpacity>
+
 
         <Text style={styles.sectionTitle}>Áreas</Text>
         <View style={styles.areasGrid}>
@@ -210,11 +223,14 @@ export default function Dashboard() {
               onPress={() => router.push(AREA_ROUTES[area] as never)}
               activeOpacity={0.75}
             >
-              <View style={[styles.areaIcon, { backgroundColor: AREA_COLORS[area] + '20' }]}>
-                <Feather name={AREA_ICONS[area] as never} size={18} color={AREA_COLORS[area]} />
+              <View style={[styles.areaHeader]}>
+                <View style={[styles.areaIcon, { backgroundColor: AREA_COLORS[area] + '20' }]}>
+                  <Feather name={AREA_ICONS[area] as never} size={18} color={AREA_COLORS[area]} />
+                </View>
+                <Text style={[styles.areaValue, { color: AREA_COLORS[area] }]}>{areaValues[area]}</Text>
               </View>
               <Text style={styles.areaLabel}>{AREA_LABELS[area]}</Text>
-              <Text style={[styles.areaValue, { color: AREA_COLORS[area] }]}>{areaValues[area]}</Text>
+              <Text style={styles.areaMetric} numberOfLines={1}>{areaMetrics[area as keyof typeof areaMetrics]}</Text>
               <ProgressBar value={areaValues[area]} color={AREA_COLORS[area]} height={4} />
             </TouchableOpacity>
           ))}
@@ -234,24 +250,6 @@ export default function Dashboard() {
             </Text>
           </GlowCard>
         )}
-
-        <View style={[styles.forecastCard, { backgroundColor: cardBg }]}>
-          <Text style={styles.sectionTitle}>Previsão 2031</Text>
-          <View style={styles.forecastRow}>
-            <View style={[styles.forecastItem, { borderColor: Colors.green + '40' }]}>
-              <Text style={[styles.forecastPct, { color: Colors.green }]}>{forecast.otimista}%</Text>
-              <Text style={styles.forecastLabel}>Otimista</Text>
-            </View>
-            <View style={[styles.forecastItem, { borderColor: Colors.accent + '40' }]}>
-              <Text style={[styles.forecastPct, { color: Colors.accent }]}>{forecast.realista}%</Text>
-              <Text style={styles.forecastLabel}>Realista</Text>
-            </View>
-            <View style={[styles.forecastItem, { borderColor: Colors.orange + '40' }]}>
-              <Text style={[styles.forecastPct, { color: Colors.orange }]}>{forecast.pessimista}%</Text>
-              <Text style={styles.forecastLabel}>Pessimista</Text>
-            </View>
-          </View>
-        </View>
 
         <View style={[styles.quoteCard, { backgroundColor: cardBg }]}>
           <Feather name="zap" size={14} color={Colors.accent} />
@@ -277,6 +275,14 @@ export default function Dashboard() {
         <View style={{ height: 40 }} />
       </ScrollView>
 
+      <TouchableOpacity
+        style={styles.floatingSessaoBtn}
+        onPress={() => setModalVisible(true)}
+        activeOpacity={0.9}
+      >
+        <Feather name="plus" size={30} color={Colors.white} />
+      </TouchableOpacity>
+
       <QuickSessionModal visible={modalVisible} onClose={() => setModalVisible(false)} />
     </View>
   );
@@ -289,8 +295,7 @@ const styles = StyleSheet.create({
   headerCenter: { flex: 1 },
   greeting: { fontSize: 20, fontFamily: 'Inter_700Bold', color: Colors.text },
   date: { fontSize: 12, fontFamily: 'Inter_400Regular', color: Colors.textMuted, textTransform: 'capitalize' },
-  dayDot: { width: 36, height: 36, borderRadius: 18, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-  dayDotText: { fontSize: 16 },
+  headerIconBtn: { width: 36, height: 36, borderRadius: 18, backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, alignItems: 'center', justifyContent: 'center' },
   criticalBanner: { flexDirection: 'row', alignItems: 'center', gap: 8, backgroundColor: Colors.redDim, borderRadius: 12, padding: 12, marginBottom: 12 },
   criticalText: { color: Colors.red, fontSize: 13, fontFamily: 'Inter_700Bold', flex: 1 },
   scoreSection: { flexDirection: 'row', alignItems: 'center', gap: 20, marginBottom: 12 },
@@ -308,10 +313,12 @@ const styles = StyleSheet.create({
   quickBtnText: { color: Colors.white, fontSize: 16, fontFamily: 'Inter_700Bold' },
   sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.text, marginBottom: 10, marginTop: 4 },
   areasGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
-  areaCard: { width: '47%', borderRadius: 14, padding: 14, borderWidth: 1, gap: 8 },
-  areaIcon: { width: 36, height: 36, borderRadius: 10, alignItems: 'center', justifyContent: 'center' },
-  areaLabel: { fontSize: 12, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
-  areaValue: { fontSize: 22, fontFamily: 'Inter_700Bold' },
+  areaCard: { width: '48%', borderRadius: 14, padding: 14, borderWidth: 1, gap: 5 },
+  areaHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 },
+  areaIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  areaLabel: { fontSize: 13, fontFamily: 'Inter_700Bold', color: Colors.text },
+  areaMetric: { fontSize: 10, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginBottom: 4 },
+  areaValue: { fontSize: 18, fontFamily: 'Inter_700Bold' },
   weeklyRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 8 },
   weeklyTitle: { fontSize: 15, fontFamily: 'Inter_700Bold', color: Colors.text },
   weeklyStat: { fontSize: 13, color: Colors.textSecondary, fontFamily: 'Inter_400Regular', marginBottom: 6 },
@@ -329,4 +336,5 @@ const styles = StyleSheet.create({
   sessionMeta: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginTop: 2 },
   sessionDate: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
   emptyText: { fontSize: 13, color: Colors.textMuted, fontFamily: 'Inter_400Regular', textAlign: 'center', marginVertical: 16 },
+  floatingSessaoBtn: { position: 'absolute', bottom: 30, alignSelf: 'center', width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.accent, alignItems: 'center', justifyContent: 'center', shadowColor: Colors.accent, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 10 },
 });

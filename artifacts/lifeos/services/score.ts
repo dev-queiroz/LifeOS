@@ -137,7 +137,7 @@ export function calcEnglishStreak(sessions: EnglishSession[]): number {
   let streak = 0;
   const today = new Date();
   for (let i = 0; i < 365; i++) {
-    const d = new Date(today);
+    const d = new Date(today.getTime());
     d.setDate(d.getDate() - i);
     const key = dateKey(d);
     const found = sessions.some((s) => s.date.slice(0, 10) === key);
@@ -151,7 +151,7 @@ export function calcWorkoutStreak(workoutLogs: WorkoutLog[]): number {
   let streak = 0;
   const today = new Date();
   for (let i = 0; i < 365; i++) {
-    const d = new Date(today);
+    const d = new Date(today.getTime());
     d.setDate(d.getDate() - i);
     const key = dateKey(d);
     const found = workoutLogs.some((w) => w.date.slice(0, 10) === key);
@@ -161,14 +161,35 @@ export function calcWorkoutStreak(workoutLogs: WorkoutLog[]): number {
   return streak;
 }
 
-export function calcProgStats(sessions: ProgSession[]) {
-  return {
-    leetcode: sessions.filter((s) => s.type === 'leetcode').length,
-    features: sessions.filter((s) => s.type === 'feature').length,
-    bugs: sessions.filter((s) => s.type === 'bug').length,
-    deploys: sessions.filter((s) => s.type === 'feature' && s.output.toLowerCase().includes('deploy')).length,
-    totalHours: Math.round(sessions.reduce((a, s) => a + s.duration, 0) / 60),
-  };
+export function calcProgStats(sessions: ProgSession[], projects: import('@/constants/types').Project[]) {
+  const leetcode = sessions.filter((s) => s.type === 'leetcode').length;
+  const features = sessions.filter((s) => s.type === 'feature').length;
+  const bugs = sessions.filter((s) => s.type === 'bug').length;
+  const deploys = sessions.filter((s) => s.type === 'feature' && s.output.toLowerCase().includes('deploy')).length;
+  const totalHours = Math.round(sessions.reduce((a, s) => a + s.duration, 0) / 60);
+
+  // Top Language
+  const techCounts: Record<string, number> = {};
+  projects.forEach(p => p.tech.forEach(t => {
+    techCounts[t] = (techCounts[t] || 0) + 1;
+  }));
+  const topLanguage = Object.keys(techCounts).sort((a, b) => techCounts[b] - techCounts[a])[0] || 'N/A';
+
+  // Streak
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today.getTime());
+    d.setDate(d.getDate() - i);
+    const key = dateKey(d);
+    const found = sessions.some((s) => s.date.slice(0, 10) === key);
+    if (found) streak++;
+    else if (i > 0) break; // Allow skip today if not yet logged, but if i=0 and not found, continue to check yesterday? 
+    // Actually, traditionally streak is broken if yesterday is missing.
+    if (i > 0 && !found) break;
+  }
+
+  return { leetcode, features, bugs, deploys, totalHours, topLanguage, streak };
 }
 
 export function planProgress(sessions: Session[], englishSessions: EnglishSession[], progSessions: ProgSession[]): number[] {

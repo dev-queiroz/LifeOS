@@ -39,7 +39,8 @@ const NAV_ITEMS: NavItem[] = [
   { label: 'Inglês Fluente', icon: 'mic', route: '/(tabs)/ingles', color: Colors.green },
   { label: 'Mestre Programação', icon: 'code', route: '/(tabs)/programacao', color: Colors.purple },
   { label: 'Shape & Saúde', icon: 'activity', route: '/(tabs)/shape', color: Colors.orange },
-  { label: 'Plano 2031', icon: 'star', route: '/(tabs)/plano', color: Colors.accent },
+  { label: 'Plano 2032', icon: 'star', route: '/(tabs)/plano', color: Colors.accent },
+  { label: 'Mais', icon: 'plus-square', route: '/(tabs)/mais', color: Colors.textSecondary },
 ];
 
 const SIDEBAR_WIDTH = 270;
@@ -123,7 +124,7 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
                   </View>
                   <View>
                     <Text style={styles.appName}>LifeOS</Text>
-                    <Text style={styles.appSub}>Plano 2031</Text>
+                    <Text style={styles.appSub}>Plano 2032</Text>
                   </View>
                 </View>
                 <View style={[styles.scoreBadge, { borderColor: scoreColor }]}>

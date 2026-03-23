@@ -37,6 +37,8 @@ function RootLayoutNav() {
       <Stack.Screen name="modal/add-english" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="modal/add-project" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="modal/add-note" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="modal/chat-ia" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
+      <Stack.Screen name="modal/configuracoes" options={{ presentation: 'modal', animation: 'slide_from_bottom' }} />
       <Stack.Screen name="subject/[id]" options={{ animation: 'slide_from_right' }} />
     </Stack>
   );

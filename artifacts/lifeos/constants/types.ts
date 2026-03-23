@@ -29,6 +29,7 @@ export interface Subject {
   name: string;
   code?: string;
   professor?: string;
+  professorEmail?: string;
   room?: string;
   schedule?: string;
   credits: number;
@@ -48,27 +49,48 @@ export interface WeightLog {
   notes?: string;
 }
 
+export interface WorkoutExercise {
+  name: string;
+  sets: number;
+  reps: number;
+  weight: number;
+}
+
 export interface WorkoutLog {
   id: string;
   type: string;
   duration: number;
   date: string;
   notes?: string;
+  exercises?: WorkoutExercise[];
+  rpe?: number;
   waterMl?: number;
 }
 
 export interface EnglishSession {
   id: string;
   type: 'speaking' | 'listening' | 'reading' | 'writing' | 'vocab' | 'class';
+  platform?: string;
   duration: number;
   score?: number;
   notes: string;
   date: string;
 }
 
+export interface Flashcard {
+  id: string;
+  front: string;
+  back: string;
+  tag?: string;
+  createdAt: string;
+}
+
 export interface ProgSession {
   id: string;
   type: 'leetcode' | 'project' | 'study' | 'bug' | 'feature' | 'cert' | 'deploy';
+  projectId?: string;
+  link?: string;
+  language?: string;
   duration: number;
   output: string;
   date: string;
@@ -152,6 +174,9 @@ export interface Settings {
   haptics: boolean;
   groqKey?: string;
   theme?: 'dark';
+  targetWeight?: number;
+  height?: number;
+  reserveTarget?: number;
 }
 
 export interface Simulation {

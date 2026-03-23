@@ -33,7 +33,17 @@ export default function SubjectDetailScreen() {
   const [actName, setActName] = useState('');
   const [actDue, setActDue] = useState('');
   const [actWeight, setActWeight] = useState('1');
+  const [actType, setActType] = useState<Activity['type']>('prova');
   const [absAdjust, setAbsAdjust] = useState(0);
+
+  const calcWeightedAvg = (sub: typeof subject) => {
+    if (!sub) return 0;
+    const graded = sub.activities.filter(a => a.grade !== undefined && a.grade !== null);
+    if (graded.length === 0) return 0;
+    const totalWeight = graded.reduce((a, act) => a + act.weight, 0);
+    const weighted = graded.reduce((a, act) => a + (act.grade ?? 0) * act.weight, 0);
+    return weighted / totalWeight;
+  };
 
   if (!subject) {
     return (
@@ -46,12 +56,10 @@ export default function SubjectDetailScreen() {
     );
   }
 
-  const avg = subject.grades.length > 0
-    ? subject.grades.reduce((a, b) => a + b, 0) / subject.grades.length
-    : 0;
+  const avg = calcWeightedAvg(subject);
 
   const absRisk = subject.absences >= subject.maxAbsences * 0.75;
-  const pendingActs = subject.activities.filter((a) => a.status === 'pending');
+  const pendingActs = subject.activities.filter((a) => a.status !== 'done');
   const doneActs = subject.activities.filter((a) => a.status === 'done');
 
   const handleAddGrade = async () => {
@@ -68,14 +76,13 @@ export default function SubjectDetailScreen() {
   };
 
   const handleAddActivity = async () => {
-    if (!actName.trim()) return;
     const act: Activity = {
       id: genId(),
       name: actName.trim(),
       dueDate: actDue || new Date().toISOString().slice(0, 10),
       status: 'pending',
       weight: parseFloat(actWeight) || 1,
-      type: 'outro',
+      type: actType,
     };
     const updated = { ...subject, activities: [...subject.activities, act] };
     if (settings.haptics) await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -83,7 +90,22 @@ export default function SubjectDetailScreen() {
     setActName('');
     setActDue('');
     setActWeight('1');
+    setActType('prova');
     setShowAddActivity(false);
+  };
+
+  const updateActivityGrade = async (actId: string, grade: string) => {
+    const g = parseFloat(grade);
+    if (isNaN(g)) return;
+
+    const updated = {
+      ...subject,
+      activities: subject.activities.map((a) =>
+        a.id === actId ? { ...a, grade: g, status: 'done' as const } : a
+      ),
+    };
+    if (settings.haptics) await Haptics.selectionAsync();
+    await updateSubject(updated);
   };
 
   const toggleActivity = async (actId: string) => {
@@ -238,14 +260,25 @@ export default function SubjectDetailScreen() {
             <Text style={styles.actGroup}>Pendentes</Text>
             {pendingActs.map((a) => (
               <GlowCard key={a.id} color={Colors.orange} padding={12}>
-                <Pressable onPress={() => toggleActivity(a.id)} style={styles.actRow}>
-                  <Feather name="circle" size={18} color={Colors.orange} />
+              <GlowCard key={a.id} color={Colors.orange} padding={12}>
+                <View style={styles.actRow}>
+                  <Pressable onPress={() => toggleActivity(a.id)}>
+                    <Feather name="circle" size={18} color={Colors.orange} />
+                  </Pressable>
                   <View style={{ flex: 1 }}>
                     <Text style={styles.actName}>{a.name}</Text>
-                    {a.dueDate && <Text style={styles.actDue}>Entrega: {a.dueDate}</Text>}
+                    {a.dueDate && <Text style={styles.actDue}>Entrega: {a.dueDate} · Peso {a.weight}</Text>}
                   </View>
-                  <Badge label={`Peso ${a.weight}`} color={Colors.orange} bg={Colors.orangeDim} />
-                </Pressable>
+                  <View style={styles.actGradeContainer}>
+                    <TextInput
+                      style={styles.actGradeInput}
+                      placeholder="Nota"
+                      keyboardType="numeric"
+                      onSubmitEditing={(e) => updateActivityGrade(a.id, e.nativeEvent.text)}
+                    />
+                  </View>
+                </View>
+              </GlowCard>
               </GlowCard>
             ))}
           </>
@@ -298,8 +331,11 @@ const styles = StyleSheet.create({
   formLabel: { fontSize: 11, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: 6 },
   formInput: { backgroundColor: Colors.bgMuted, borderRadius: 10, padding: 10, color: Colors.text, fontFamily: 'Inter_400Regular', fontSize: 14, borderWidth: 1, borderColor: Colors.border },
   actGroup: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary, marginTop: 8, marginBottom: 6 },
-  actRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   actName: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.text },
-  actDue: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textSecondary, marginTop: 2 },
+  actDue: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginTop: 2 },
+  actGradeContainer: { width: 60 },
+  actGradeInput: { backgroundColor: Colors.bgMuted, borderRadius: 6, paddingVertical: 4, paddingHorizontal: 8, color: Colors.text, fontSize: 12, borderWidth: 1, borderColor: Colors.border, textAlign: 'center' },
+  actRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  actGradeValue: { fontSize: 14, fontFamily: 'Inter_700Bold', color: Colors.green },
   empty: { fontSize: 16, fontFamily: 'Inter_400Regular', color: Colors.textSecondary, textAlign: 'center', marginTop: 40 },
 });

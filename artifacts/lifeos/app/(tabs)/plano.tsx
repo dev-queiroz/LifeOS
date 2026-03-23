@@ -25,8 +25,8 @@ const PHASES = [
   { id: 1 as const, title: 'Fase 1: Faculdade + Skills', period: '2024 – 2026', color: Colors.cyan, colorDim: Colors.cyanDim, icon: 'book' as const, desc: 'Formar, inglês B2+, programar' },
   { id: 2 as const, title: 'Fase 2: Shape + Estabilidade', period: '2026 – 2027', color: Colors.orange, colorDim: Colors.orangeDim, icon: 'activity' as const, desc: 'Saúde, freelas, reserva 6 meses' },
   { id: 3 as const, title: 'Fase 3: Carreira Internacional', period: '2027 – 2029', color: Colors.purple, colorDim: Colors.purpleDim, icon: 'briefcase' as const, desc: 'Emprego remoto EUR 3k+/mês' },
-  { id: 4 as const, title: 'Fase 4: Relocation + Visto', period: '2029 – 2030', color: Colors.green, colorDim: Colors.greenDim, icon: 'map-pin' as const, desc: 'Processo Blue Card, mudança' },
-  { id: 5 as const, title: 'Fase 5: Berlim 2031', period: '2030 – 2031', color: Colors.accent, colorDim: Colors.accentDim, icon: 'star' as const, desc: 'Estabelecido na Alemanha' },
+  { id: 4 as const, title: 'Fase 4: Relocation + Visto', period: '2029 – 2031', color: Colors.green, colorDim: Colors.greenDim, icon: 'map-pin' as const, desc: 'Processo Blue Card, mudança' },
+  { id: 5 as const, title: 'Fase 5: Vida na Europa 2032', period: '2031 – 2032', color: Colors.accent, colorDim: Colors.accentDim, icon: 'star' as const, desc: 'Estabelecido (Espanha/Alemanha)' },
 ];
 
 function AddGoalModal({ visible, phase, onClose, onSave }: {
@@ -89,7 +89,7 @@ export default function PlanoScreen() {
   );
 
   const overallProgress = Math.round(phaseProgress.reduce((a, b) => a + b, 0) / 5);
-  const yearsLeft = 2031 - new Date().getFullYear();
+  const yearsLeft = 2032 - new Date().getFullYear();
 
   return (
     <View style={styles.root}>
@@ -100,13 +100,35 @@ export default function PlanoScreen() {
         <View style={styles.header}>
           <SidebarToggle color={Colors.accent} />
           <View style={{ flex: 1 }}>
-            <Text style={[styles.title, { color: Colors.accent }]}>Plano 2031</Text>
-            <Text style={styles.subtitle}>{yearsLeft} anos para Berlim • {overallProgress}% geral</Text>
+            <Text style={[styles.title, { color: Colors.accent }]}>Plano 2032</Text>
+            <Text style={styles.subtitle}>{yearsLeft} anos para Europa • {overallProgress}% geral</Text>
           </View>
+          <TouchableOpacity 
+            style={[styles.headerIconBtn, { backgroundColor: Colors.accentDim, borderColor: Colors.accent }]} 
+            onPress={() => setGoalModal(1)}
+          >
+            <Feather name="plus" size={20} color={Colors.accent} />
+          </TouchableOpacity>
         </View>
 
         <GlowCard color={Colors.accent}>
-          <Text style={styles.forecastTitle}>Previsão Chegada — Berlim 2031</Text>
+          <View style={styles.countdownRow}>
+             <View style={styles.countdownItem}>
+                <Text style={styles.countdownVal}>{yearsLeft}</Text>
+                <Text style={styles.countdownLabel}>Anos</Text>
+             </View>
+             <View style={styles.countdownDivider} />
+             <View style={styles.countdownItem}>
+                <Text style={styles.countdownVal}>{Math.floor(yearsLeft * 365)}</Text>
+                <Text style={styles.countdownLabel}>Dias</Text>
+             </View>
+             <View style={styles.countdownDivider} />
+             <View style={styles.countdownItem}>
+                <Text style={styles.countdownVal}>{overallProgress}%</Text>
+                <Text style={styles.countdownLabel}>Concluído</Text>
+             </View>
+          </View>
+          
           <View style={styles.forecastRow}>
             <View style={[styles.forecastItem, { borderColor: Colors.green + '50' }]}>
               <Text style={[styles.forecastPct, { color: Colors.green }]}>{forecast.otimista}%</Text>
@@ -121,13 +143,6 @@ export default function PlanoScreen() {
               <Text style={styles.forecastLabel}>Pessimista</Text>
             </View>
           </View>
-          <Text style={styles.forecastNote}>
-            {forecast.realista >= 80
-              ? '🟢 No caminho certo para 2031!'
-              : forecast.realista >= 50
-              ? '🟡 Progresso bom, acelere o ritmo.'
-              : '🔴 Precisa aumentar consistência urgentemente.'}
-          </Text>
         </GlowCard>
 
         <Text style={styles.sectionTitle}>Fases</Text>
@@ -187,6 +202,28 @@ export default function PlanoScreen() {
           );
         })}
 
+        <Text style={styles.sectionTitle}>Próximos Passos</Text>
+        <GlowCard color={Colors.bgMuted}>
+          <View style={{ gap: 12 }}>
+            {[
+              { area: 'Faculdade', step: 'Concluir disciplinas do semestre atual.', icon: 'book', color: Colors.cyan },
+              { area: 'Carreira', step: 'Completar 3 projetos reais no portfolio.', icon: 'briefcase', color: Colors.purple },
+              { area: 'Saúde', step: 'Manter streak de 4 treinos/semana.', icon: 'activity', color: Colors.orange },
+              { area: 'Finanças', step: 'Atingir primeira meta da reserva.', icon: 'dollar-sign', color: Colors.green },
+            ].map(p => (
+              <View key={p.area} style={styles.nextStepRow}>
+                <View style={[styles.nextStepIcon, { backgroundColor: p.color + '25' }]}>
+                  <Feather name={p.icon as any} size={14} color={p.color} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.nextStepArea}>{p.area}</Text>
+                  <Text style={styles.nextStepText}>{p.step}</Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        </GlowCard>
+
         <View style={{ height: 40 }} />
       </ScrollView>
 
@@ -208,12 +245,16 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   title: { fontSize: 22, fontFamily: 'Inter_700Bold' },
   subtitle: { fontSize: 12, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
-  forecastTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.textSecondary, marginBottom: 12 },
-  forecastRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  headerIconBtn: { width: 36, height: 36, borderRadius: 10, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
+  countdownRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 20, marginBottom: 20, marginTop: 10 },
+  countdownItem: { alignItems: 'center' },
+  countdownVal: { fontSize: 24, fontFamily: 'Inter_800ExtraBold', color: Colors.text },
+  countdownLabel: { fontSize: 10, fontFamily: 'Inter_500Medium', color: Colors.textMuted, textTransform: 'uppercase' },
+  countdownDivider: { width: 1, height: 30, backgroundColor: Colors.border },
+  forecastRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
   forecastItem: { flex: 1, borderRadius: 10, borderWidth: 1, padding: 12, alignItems: 'center' },
   forecastPct: { fontSize: 22, fontFamily: 'Inter_700Bold' },
   forecastLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
-  forecastNote: { fontSize: 13, fontFamily: 'Inter_500Medium', color: Colors.textSecondary },
   sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.text, marginBottom: 12, marginTop: 8 },
   phaseWrapper: { marginBottom: 8 },
   phaseCard: { flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: Colors.bgCard, borderRadius: 14, padding: 14, borderWidth: 1 },
@@ -229,6 +270,10 @@ const styles = StyleSheet.create({
   goalDone: { textDecorationLine: 'line-through', color: Colors.textMuted },
   addGoalBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 8, borderRadius: 8, borderWidth: 1, paddingHorizontal: 10, marginTop: 4 },
   addGoalText: { fontSize: 13, fontFamily: 'Inter_600SemiBold' },
+  nextStepRow: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  nextStepIcon: { width: 32, height: 32, borderRadius: 8, alignItems: 'center', justifyContent: 'center' },
+  nextStepArea: { fontSize: 11, fontFamily: 'Inter_700Bold', color: Colors.textMuted, textTransform: 'uppercase' },
+  nextStepText: { fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.text },
   modal: { flex: 1, backgroundColor: Colors.bg },
   handle: { width: 40, height: 4, backgroundColor: Colors.border, borderRadius: 2, alignSelf: 'center', marginBottom: 16 },
   modalHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20, marginBottom: 8 },

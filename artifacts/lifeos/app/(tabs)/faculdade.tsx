@@ -26,14 +26,19 @@ import { genId, useApp } from '@/context/AppContext';
 
 function calcWeightedAvg(subject: Subject): number {
   const graded = subject.activities.filter((a) => a.grade !== undefined && a.grade !== null);
-  if (graded.length === 0 && subject.grades.length > 0) {
-    return subject.grades.reduce((a, b) => a + b, 0) / subject.grades.length;
-  }
   if (graded.length === 0) return 0;
   const totalWeight = graded.reduce((a, act) => a + act.weight, 0);
   if (totalWeight === 0) return 0;
   const weighted = graded.reduce((a, act) => a + (act.grade ?? 0) * act.weight, 0);
   return weighted / totalWeight;
+}
+
+function getDaysUntil(dateStr: string): number {
+  const due = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diffTime = due.getTime() - today.getTime();
+  return Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 }
 
 function autoActivityStatus(act: Activity): Activity['status'] {
@@ -78,12 +83,18 @@ function SubjectCard({
             {late > 0 && <Badge label={`${late} atrasado(s)`} color={Colors.red} bg={Colors.redDim} />}
             {pending > 0 && <Badge label={`${pending} pendente(s)`} color={Colors.orange} bg={Colors.orangeDim} />}
           </View>
+          {(subject.professor || subject.room) && (
+            <Text style={styles.subjectMeta}>
+              {subject.professor && <><Feather name="user" size={10} /> {subject.professor} </>}
+              {subject.room && <><Feather name="map-pin" size={10} /> {subject.room}</>}
+            </Text>
+          )}
         </View>
         <View style={styles.subjectRight}>
           <Text style={[styles.avg, { color: avg >= 7 ? Colors.green : avg >= 5 ? Colors.orange : Colors.red }]}>
             {avg.toFixed(1)}
           </Text>
-          <Text style={styles.avgLabel}>Média</Text>
+          <Text style={styles.avgLabel}>Média Parcial</Text>
         </View>
       </View>
 
@@ -126,6 +137,9 @@ function AddSubjectModal({ visible, onClose, onSave }: {
   const [name, setName] = useState('');
   const [code, setCode] = useState('');
   const [professor, setProfessor] = useState('');
+  const [professorEmail, setProfessorEmail] = useState('');
+  const [room, setRoom] = useState('');
+  const [schedule, setSchedule] = useState('');
   const [credits, setCredits] = useState('4');
   const [maxAbsences, setMaxAbsences] = useState('6');
 
@@ -135,6 +149,9 @@ function AddSubjectModal({ visible, onClose, onSave }: {
       name: name.trim(),
       code: code.trim(),
       professor: professor.trim(),
+      professorEmail: professorEmail.trim(),
+      room: room.trim(),
+      schedule: schedule.trim(),
       credits: parseInt(credits) || 4,
       grades: [],
       absences: 0,
@@ -142,7 +159,7 @@ function AddSubjectModal({ visible, onClose, onSave }: {
       activities: [],
       notes: '',
     });
-    setName(''); setCode(''); setProfessor(''); setCredits('4'); setMaxAbsences('6');
+    setName(''); setCode(''); setProfessor(''); setProfessorEmail(''); setRoom(''); setSchedule(''); setCredits('4'); setMaxAbsences('6');
     onClose();
   };
 
@@ -159,6 +176,9 @@ function AddSubjectModal({ visible, onClose, onSave }: {
             { label: 'Nome *', value: name, onChange: setName, placeholder: 'Ex: Cálculo II' },
             { label: 'Código', value: code, onChange: setCode, placeholder: 'Ex: MAT201' },
             { label: 'Professor', value: professor, onChange: setProfessor, placeholder: 'Nome do professor' },
+            { label: 'E-mail do Professor', value: professorEmail, onChange: setProfessorEmail, placeholder: 'prof@uniso.br' },
+            { label: 'Sala', value: room, onChange: setRoom, placeholder: 'Ex: Bloco B-102' },
+            { label: 'Horário', value: schedule, onChange: setSchedule, placeholder: 'Ex: Segundas às 19h' },
             { label: 'Créditos', value: credits, onChange: setCredits, placeholder: '4', keyboardType: 'numeric' as const },
             { label: 'Máx. Faltas', value: maxAbsences, onChange: setMaxAbsences, placeholder: '6', keyboardType: 'numeric' as const },
           ].map((f) => (
@@ -232,6 +252,39 @@ export default function FaculdadeScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Destaque de Prazos */}
+        {(() => {
+          const allPending = subjects.flatMap(s => s.activities
+            .filter(a => autoActivityStatus(a) !== 'done')
+            .map(a => ({ ...a, subjectName: s.name }))
+          ).sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())
+          .slice(0, 3);
+
+          if (allPending.length === 0) return null;
+
+          return (
+            <View style={styles.deadlinesSection}>
+              <Text style={styles.sectionHeader}>Próximos Prazos</Text>
+              {allPending.map(act => {
+                const days = getDaysUntil(act.dueDate);
+                const deadlineColor = days < 0 ? Colors.red : days <= 2 ? Colors.orange : Colors.cyan;
+                return (
+                  <View key={act.id} style={styles.deadlineCard}>
+                    <View style={[styles.deadlineDot, { backgroundColor: deadlineColor }]} />
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.deadlineName}>{act.name}</Text>
+                      <Text style={styles.deadlineSub}>{act.subjectName} · {act.dueDate}</Text>
+                    </View>
+                    <Text style={[styles.deadlineDays, { color: deadlineColor }]}>
+                      {days < 0 ? 'Atrasado' : days === 0 ? 'Hoje' : `Em ${days}d`}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
+          );
+        })()}
+
         {(totalRisk > 0 || totalPending > 0) && (
           <View style={styles.alertRow}>
             {totalRisk > 0 && (
@@ -268,6 +321,23 @@ export default function FaculdadeScreen() {
             />
           ))
         )}
+
+        {subjects.length > 0 && (
+          <View style={styles.scheduleSection}>
+            <Text style={styles.sectionHeader}>Sugestão de Grade Horária</Text>
+            {subjects.filter(s => s.schedule).length === 0 ? (
+              <Text style={styles.emptyScheduleText}>Configure o horário nas matérias para ver a grade.</Text>
+            ) : (
+              subjects.filter(s => s.schedule).map(s => (
+                <View key={s.id} style={styles.scheduleRow}>
+                  <View style={[styles.scheduleDot, { backgroundColor: Colors.cyan }]} />
+                  <Text style={styles.scheduleTime}>{s.schedule}</Text>
+                  <Text style={styles.scheduleName} numberOfLines={1}>{s.name}</Text>
+                </View>
+              ))
+            )}
+          </View>
+        )}
         <View style={{ height: 40 }} />
       </ScrollView>
 
@@ -286,6 +356,13 @@ const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 14 },
   title: { fontSize: 22, fontFamily: 'Inter_700Bold' },
   subtitle: { fontSize: 12, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
+  deadlinesSection: { marginBottom: 20, backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.border },
+  sectionHeader: { fontSize: 14, fontFamily: 'Inter_700Bold', color: Colors.text, marginBottom: 12, textTransform: 'uppercase', letterSpacing: 0.5 },
+  deadlineCard: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 10 },
+  deadlineDot: { width: 8, height: 8, borderRadius: 4 },
+  deadlineName: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.text },
+  deadlineSub: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
+  deadlineDays: { fontSize: 12, fontFamily: 'Inter_700Bold' },
   addBtn: { width: 40, height: 40, borderRadius: 12, alignItems: 'center', justifyContent: 'center' },
   alertRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
   alertChip: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
@@ -293,6 +370,7 @@ const styles = StyleSheet.create({
   subjectRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 12, marginBottom: 10 },
   subjectName: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.text, marginBottom: 2 },
   subjectCode: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginBottom: 4 },
+  subjectMeta: { fontSize: 10, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginTop: 4 },
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
   subjectRight: { alignItems: 'flex-end' },
   avg: { fontSize: 28, fontFamily: 'Inter_700Bold' },
@@ -314,4 +392,10 @@ const styles = StyleSheet.create({
   input: { backgroundColor: Colors.bgCard, borderWidth: 1, borderColor: Colors.border, borderRadius: 10, padding: 12, color: Colors.text, fontFamily: 'Inter_400Regular', fontSize: 15 },
   saveBtn: { backgroundColor: Colors.cyan, borderRadius: 12, paddingVertical: 14, alignItems: 'center', marginTop: 8 },
   saveBtnText: { color: Colors.white, fontSize: 16, fontFamily: 'Inter_700Bold' },
+  scheduleSection: { marginTop: 20, backgroundColor: Colors.bgCard, borderRadius: 16, padding: 16, borderWidth: 1, borderColor: Colors.border },
+  emptyScheduleText: { fontSize: 12, fontFamily: 'Inter_400Regular', color: Colors.textMuted, textAlign: 'center', marginVertical: 8 },
+  scheduleRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginBottom: 8 },
+  scheduleDot: { width: 6, height: 6, borderRadius: 3 },
+  scheduleTime: { fontSize: 13, fontFamily: 'Inter_600SemiBold', color: Colors.cyan, width: 110 },
+  scheduleName: { fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.text, flex: 1 },
 });
