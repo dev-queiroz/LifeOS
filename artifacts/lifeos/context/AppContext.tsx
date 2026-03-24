@@ -11,7 +11,9 @@ import type {
   Note,
   PlanGoal,
   Project,
+  ProjectItem,
   ProgSession,
+  ScheduleSlot,
   Flashcard,
   Session,
   Settings,
@@ -20,6 +22,7 @@ import type {
   WaterLog,
   WeightLog,
   WorkoutLog,
+  WorkoutTemplate,
 } from '@/constants/types';
 import {
   calcGlobalScore,
@@ -42,6 +45,7 @@ interface AppContextValue {
   simulations: Simulation[];
   planGoals: PlanGoal[];
   flashcards: Flashcard[];
+  schedule: ScheduleSlot[];
   settings: Settings;
   globalScore: GlobalScore;
   loading: boolean;
@@ -99,7 +103,16 @@ interface AppContextValue {
   deletePlanGoal: (id: string) => Promise<void>;
 
   addFlashcard: (f: Omit<Flashcard, 'id' | 'createdAt'>) => Promise<void>;
+  updateFlashcard: (f: Flashcard) => Promise<void>;
   deleteFlashcard: (id: string) => Promise<void>;
+
+  workoutTemplates: WorkoutTemplate[];
+  addWorkoutTemplate: (t: Omit<WorkoutTemplate, 'id' | 'createdAt'>) => Promise<void>;
+  deleteWorkoutTemplate: (id: string) => Promise<void>;
+
+  addScheduleSlot: (s: Omit<ScheduleSlot, 'id'>) => Promise<void>;
+  updateScheduleSlot: (s: ScheduleSlot) => Promise<void>;
+  deleteScheduleSlot: (id: string) => Promise<void>;
 
   updateSettings: (s: Partial<Settings>) => Promise<void>;
 
@@ -169,6 +182,7 @@ function computeGlobal(
     redStreak: cs.redStreak,
     dayValid: cs.dayValid,
     avg7: cs.avg7,
+    currentStreak: cs.currentStreak,
   };
 }
 
@@ -188,12 +202,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const [simulations, setSimulations] = useState<Simulation[]>([]);
   const [planGoals, setPlanGoals] = useState<PlanGoal[]>([]);
   const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [schedule, setSchedule] = useState<ScheduleSlot[]>([]);
+  const [workoutTemplates, setWorkoutTemplates] = useState<WorkoutTemplate[]>([]);
   const [settings, setSettings] = useState<Settings>({ quickMode: true, haptics: true });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const init = async () => {
-      const [s, sub, w, wo, wl, es, ps, proj, certs, n, fin, free, sims, goals, flash, set] =
+      const [s, sub, w, wo, wl, es, ps, proj, certs, n, fin, free, sims, goals, flash, sch, templates, set] =
         await Promise.all([
           load<Session[]>(STORAGE_KEYS.SESSIONS, []),
           load<Subject[]>(STORAGE_KEYS.SUBJECTS, []),
@@ -210,6 +226,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           load<Simulation[]>(STORAGE_KEYS.SIMULATIONS, []),
           load<PlanGoal[]>('plan_goals', []),
           load<Flashcard[]>(STORAGE_KEYS.FLASHCARDS, []),
+          load<ScheduleSlot[]>('study_schedule', []),
+          load<WorkoutTemplate[]>('workout_templates', []),
           load<Settings>(STORAGE_KEYS.SETTINGS, { quickMode: true, haptics: true }),
         ]);
       setSessions(s);
@@ -227,6 +245,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setSimulations(sims);
       setPlanGoals(goals);
       setFlashcards(flash);
+      setSchedule(sch);
+      setWorkoutTemplates(templates);
       setSettings(set);
       setLoading(false);
     };
@@ -553,6 +573,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const updateFlashcard = useCallback(async (f: Flashcard) => {
+    setFlashcards((prev) => {
+      const next = prev.map((x) => (x.id === f.id ? f : x));
+      save(STORAGE_KEYS.FLASHCARDS, next);
+      return next;
+    });
+  }, []);
+
   const deleteFlashcard = useCallback(async (id: string) => {
     setFlashcards((prev) => {
       const next = prev.filter((x) => x.id !== id);
@@ -569,6 +597,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     });
   }, []);
 
+  const addWorkoutTemplate = useCallback(async (t: Omit<WorkoutTemplate, 'id' | 'createdAt'>) => {
+    setWorkoutTemplates((prev) => {
+      const next = [{ ...t, id: genId(), createdAt: new Date().toISOString() }, ...prev];
+      save('workout_templates', next);
+      return next;
+    });
+  }, []);
+
+  const deleteWorkoutTemplate = useCallback(async (id: string) => {
+    setWorkoutTemplates((prev) => {
+      const next = prev.filter((x) => x.id !== id);
+      save('workout_templates', next);
+      return next;
+    });
+  }, []);
+
+  const addScheduleSlot = useCallback(async (s: Omit<ScheduleSlot, 'id'>) => {
+    setSchedule((prev) => {
+      const next = [{ ...s, id: genId() }, ...prev];
+      save('study_schedule', next);
+      return next;
+    });
+  }, []);
+
+  const updateScheduleSlot = useCallback(async (s: ScheduleSlot) => {
+    setSchedule((prev) => {
+      const next = prev.map((x) => (x.id === s.id ? s : x));
+      save('study_schedule', next);
+      return next;
+    });
+  }, []);
+
+  const deleteScheduleSlot = useCallback(async (id: string) => {
+    setSchedule((prev) => {
+      const next = prev.filter((x) => x.id !== id);
+      save('study_schedule', next);
+      return next;
+    });
+  }, []);
+
   const getDayStatus = useCallback(
     (date: string) => {
       const ds = calcDayStatus(sessions, date);
@@ -581,7 +649,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     () => ({
       sessions, subjects, weightLogs, workoutLogs, waterLogs, englishSessions,
       progSessions, projects, certifications, notes, finances, freelance,
-      simulations, planGoals, flashcards, settings, globalScore, loading,
+      simulations, planGoals, flashcards, schedule, workoutTemplates, settings, globalScore, loading,
       addSession, updateSession, deleteSession,
       addSubject, updateSubject, deleteSubject,
       addAbsence, removeAbsence,
@@ -597,13 +665,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addFreelance, updateFreelance, deleteFreelance,
       addSimulation, deleteSimulation,
       addPlanGoal, updatePlanGoal, deletePlanGoal,
-      addFlashcard, deleteFlashcard,
+      addFlashcard, updateFlashcard, deleteFlashcard,
+      addWorkoutTemplate, deleteWorkoutTemplate,
+      addScheduleSlot, updateScheduleSlot, deleteScheduleSlot,
       updateSettings, getDayStatus,
     }),
     [
       sessions, subjects, weightLogs, workoutLogs, waterLogs, englishSessions,
       progSessions, projects, certifications, notes, finances, freelance,
-      simulations, planGoals, flashcards, settings, globalScore, loading,
+      simulations, planGoals, flashcards, schedule, workoutTemplates, settings, globalScore, loading,
       addSession, updateSession, deleteSession,
       addSubject, updateSubject, deleteSubject,
       addAbsence, removeAbsence,
@@ -619,7 +689,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addFreelance, updateFreelance, deleteFreelance,
       addSimulation, deleteSimulation,
       addPlanGoal, updatePlanGoal, deletePlanGoal,
-      addFlashcard, deleteFlashcard,
+      addFlashcard, updateFlashcard, deleteFlashcard,
+      addWorkoutTemplate, deleteWorkoutTemplate,
+      addScheduleSlot, updateScheduleSlot, deleteScheduleSlot,
       updateSettings, getDayStatus,
     ]
   );

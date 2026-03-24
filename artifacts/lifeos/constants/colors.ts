@@ -14,6 +14,8 @@ export const Colors = {
   green: '#10B981',
   greenDim: '#064E3B',
 
+  yellow: '#FBBF24',
+  yellowDim: '#78350F',
   orange: '#F59E0B',
   orangeDim: '#5C3A00',
 

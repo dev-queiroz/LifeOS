@@ -17,6 +17,29 @@ export interface CompositeScore {
   redStreak: number;
   dayValid: boolean;
   avg7: number;
+  currentStreak: number;
+}
+
+export function calcCurrentStreak(sessions: Session[]): number {
+  let streak = 0;
+  const today = new Date();
+  for (let i = 0; i < 365; i++) {
+    const d = new Date(today.getTime());
+    d.setDate(d.getDate() - i);
+    const key = d.toISOString().slice(0, 10);
+    const ds = calcDayStatus(sessions, key);
+    
+    if (ds.status === 'green') {
+      streak++;
+    } else if (i === 0) {
+      // Hoje ainda não é verde, mas a sequência continua se ontem foi verde
+      continue;
+    } else {
+      // Um dia anterior não foi verde, quebou a sequência
+      break;
+    }
+  }
+  return streak;
 }
 
 function dateKey(d: Date) {
@@ -126,7 +149,9 @@ export function calcGlobalScore(
       ? 'down'
       : 'stable';
 
-  return { total, consistency, efficiency, focus, trend, criticalMode, redStreak, dayValid, avg7 };
+  const currentStreak = calcCurrentStreak(sessions);
+
+  return { total, consistency, efficiency, focus, trend, criticalMode, redStreak, dayValid, avg7, currentStreak };
 }
 
 export function calcEnglishHours(sessions: EnglishSession[]): number {
@@ -163,9 +188,9 @@ export function calcWorkoutStreak(workoutLogs: WorkoutLog[]): number {
 
 export function calcProgStats(sessions: ProgSession[], projects: import('@/constants/types').Project[]) {
   const leetcode = sessions.filter((s) => s.type === 'leetcode').length;
-  const features = sessions.filter((s) => s.type === 'feature').length;
-  const bugs = sessions.filter((s) => s.type === 'bug').length;
-  const deploys = sessions.filter((s) => s.type === 'feature' && s.output.toLowerCase().includes('deploy')).length;
+  const features = projects.reduce((a, p) => a + (p.featuresList?.length || 0), 0);
+  const bugs = projects.reduce((a, p) => a + (p.bugsList?.length || 0), 0);
+  const deploys = projects.reduce((a, p) => a + (p.deploysList?.length || 0), 0);
   const totalHours = Math.round(sessions.reduce((a, s) => a + s.duration, 0) / 60);
 
   // Top Language

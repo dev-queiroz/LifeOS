@@ -2,6 +2,7 @@ import { Feather } from '@expo/vector-icons';
 import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
+  Alert,
   Platform,
   ScrollView,
   StyleSheet,
@@ -18,17 +19,17 @@ import { ProgressBar } from '@/components/ui/ProgressBar';
 import { ScoreRing } from '@/components/ui/ScoreRing';
 import { Colors } from '@/constants/colors';
 import { useApp } from '@/context/AppContext';
-import { calcDayStatus, calcEnglishStreak, calcWorkoutStreak, forecast2031 } from '@/services/score';
+import { calcDayStatus, calcEnglishStreak, calcWorkoutStreak } from '@/services/score';
 import { calcWeeklyWaste, isSunday } from '@/services/antifraud';
 
 const MOTIVATIONAL = [
-  'Cada sessão te aproxima da Alemanha em 2031.',
+  'Cada sessão te aproxima do seu objetivo.',
   'Consistência bate talento todos os dias.',
   'Quem controla o dia controla o futuro.',
   'O gap fechou um pouco mais hoje.',
-  'Você está construindo a vida dos seus sonhos.',
-  'Berlim te espera — continue.',
-  'Pequenos ganhos diários = grande salto em 2031.',
+  'Você está construindo a vida que deseja.',
+  'Pequenos ganhos diários geram grandes resultados.',
+  'Continue firme — o resultado virá.',
 ];
 
 const AREA_ROUTES: Record<string, string> = {
@@ -36,7 +37,6 @@ const AREA_ROUTES: Record<string, string> = {
   ingles: '/(tabs)/ingles',
   programacao: '/(tabs)/programacao',
   shape: '/(tabs)/shape',
-  plano: '/(tabs)/plano',
 };
 
 const AREA_COLORS: Record<string, string> = {
@@ -44,7 +44,6 @@ const AREA_COLORS: Record<string, string> = {
   ingles: Colors.green,
   programacao: Colors.purple,
   shape: Colors.orange,
-  plano: Colors.accent,
 };
 
 const AREA_ICONS: Record<string, string> = {
@@ -52,20 +51,30 @@ const AREA_ICONS: Record<string, string> = {
   ingles: 'mic',
   programacao: 'code',
   shape: 'activity',
-  plano: 'star',
 };
 
 const AREA_LABELS: Record<string, string> = {
   faculdade: 'Faculdade',
   ingles: 'Inglês',
   programacao: 'Programação',
-  shape: 'Shape',
-  plano: 'Plano 2032',
+  shape: 'Shape & Saúde',
 };
 
 export default function Dashboard() {
   const insets = useSafeAreaInsets();
-  const { globalScore, sessions, englishSessions, workoutLogs, progSessions, subjects, projects, weightLogs } = useApp();
+  const {
+    globalScore,
+    sessions,
+    englishSessions,
+    workoutLogs,
+    progSessions,
+    subjects,
+    projects,
+    weightLogs,
+    loading,
+    getDayStatus
+  } = useApp();
+
   const [modalVisible, setModalVisible] = useState(false);
 
   const today = new Date();
@@ -76,34 +85,71 @@ export default function Dashboard() {
   const engStreak = useMemo(() => calcEnglishStreak(englishSessions), [englishSessions]);
   const workoutStreak = useMemo(() => calcWorkoutStreak(workoutLogs), [workoutLogs]);
   const weeklyWaste = useMemo(() => calcWeeklyWaste(sessions), [sessions]);
-  const forecast = useMemo(
-    () => forecast2031(sessions, englishSessions, progSessions),
-    [sessions, englishSessions, progSessions]
-  );
 
   const weekSunday = isSunday();
+
+  // ==================== STREAK DO DUOLINGO ====================
+  const currentStreak = useMemo(() => {
+    let streak = 0;
+    let checkDate = new Date();
+
+    while (true) {
+      const dateKey = checkDate.toISOString().slice(0, 10);
+      const dayStatus = getDayStatus(dateKey);
+
+      if (dayStatus.status === 'green') {
+        streak++;
+      } else {
+        break;
+      }
+
+      checkDate.setDate(checkDate.getDate() - 1);
+      if (streak > 365) break;
+    }
+
+    return streak;
+  }, [getDayStatus]);
+
+  const streakColor = currentStreak >= 7 ? Colors.green :
+    currentStreak >= 3 ? Colors.orange :
+      currentStreak > 0 ? Colors.yellow : Colors.textMuted;
+
+  React.useEffect(() => {
+    if (loading) return;
+    const checkAlerts = () => {
+      const yesterday = new Date();
+      yesterday.setDate(yesterday.getDate() - 1);
+      const yKey = yesterday.toISOString().slice(0, 10);
+      const yStatus = getDayStatus(yKey);
+      const tKey = new Date().toISOString().slice(0, 10);
+      const tStatus = getDayStatus(tKey);
+
+      if (yStatus.status === 'green' && tStatus.status !== 'green') {
+        Alert.alert('🔥 Mantenha a chama!', 'Você ainda não validou hoje. Não quebre seu streak!');
+      }
+      if (weekSunday) {
+        Alert.alert('📊 Revisão Semanal', 'Hoje é domingo! Revise seu progresso e planeje a próxima semana.');
+      }
+    };
+    const timer = setTimeout(checkAlerts, 1000);
+    return () => clearTimeout(timer);
+  }, [loading, weekSunday, getDayStatus]);
 
   const scoreColor = globalScore.criticalMode
     ? Colors.red
     : globalScore.total >= 70
-    ? Colors.green
-    : globalScore.total >= 40
-    ? Colors.orange
-    : Colors.red;
+      ? Colors.green
+      : globalScore.total >= 40
+        ? Colors.orange
+        : Colors.red;
 
   const dayStatusColor =
-    todayStatus.status === 'green'
-      ? Colors.green
-      : todayStatus.status === 'yellow'
-      ? Colors.orange
-      : Colors.red;
+    todayStatus.status === 'green' ? Colors.green :
+      todayStatus.status === 'yellow' ? Colors.orange : Colors.red;
 
   const dayLabel =
-    todayStatus.status === 'green'
-      ? 'Dia Válido ✓'
-      : todayStatus.status === 'yellow'
-      ? 'Dia Regular'
-      : 'Sem Sessão';
+    todayStatus.status === 'green' ? 'Dia Válido ✓' :
+      todayStatus.status === 'yellow' ? 'Dia Regular' : 'Sem Sessão';
 
   const ptDate = today.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: 'long' });
 
@@ -112,7 +158,6 @@ export default function Dashboard() {
     ingles: globalScore.ingles.value,
     programacao: globalScore.programacao.value,
     shape: globalScore.shape.value,
-    plano: Math.round((globalScore.faculdade.value + globalScore.ingles.value + globalScore.programacao.value) / 3),
   };
 
   const areaMetrics = useMemo(() => {
@@ -121,7 +166,7 @@ export default function Dashboard() {
     const engHoursCount = Math.round(englishSessions.reduce((a, s) => a + s.duration, 0) / 60);
     const engLevel = engHoursCount > 200 ? 'B2' : engHoursCount > 100 ? 'B1' : 'A2';
     const activeProjs = projects.filter(p => p.status === 'building').length;
-    const totalDeploys = progSessions.filter(s => s.type === 'deploy').length;
+    const totalLeetcode = progSessions.filter(s => s.type === 'leetcode').length;
     const codedToday = progSessions.some(s => s.date === todayKey);
     const lastWeight = weightLogs[0]?.weight ?? 0;
     const startWeight = weightLogs[weightLogs.length - 1]?.weight ?? lastWeight;
@@ -131,13 +176,12 @@ export default function Dashboard() {
     return {
       faculdade: `${facPending} pendentes · ${facDept} faltas`,
       ingles: `${engLevel} · ${engStreak}d · ${engHoursCount}h`,
-      programacao: `${activeProjs} ativos · ${totalDeploys} deploys · ${codedToday ? '✓' : '✗'}`,
+      programacao: `${activeProjs} ativos · ${totalLeetcode} leetcode · ${codedToday ? '✓' : '✗'}`,
       shape: `${lastWeight}kg (${Number(weightVar) > 0 ? '+' : ''}${weightVar}) · ${workoutStreak}d · ${trainedToday ? '✓' : '✗'}`,
-      plano: `Meta: Munique 2032`,
     };
   }, [subjects, englishSessions, engStreak, projects, progSessions, todayKey, weightLogs, workoutLogs, workoutStreak]);
 
-  const areas = ['faculdade', 'ingles', 'programacao', 'shape', 'plano'];
+  const areas = ['faculdade', 'ingles', 'programacao', 'shape'];
 
   const bgColor = globalScore.criticalMode ? '#0E0A0A' : Colors.bg;
   const cardBg = globalScore.criticalMode ? '#1A0A0A' : Colors.bgCard;
@@ -157,9 +201,6 @@ export default function Dashboard() {
             <Text style={styles.greeting}>Olá, Douglas! 👋</Text>
             <Text style={styles.date}>{ptDate}</Text>
           </View>
-          <TouchableOpacity onPress={() => router.push('/modal/chat-ia')} style={styles.headerIconBtn}>
-            <Feather name="cpu" size={20} color={Colors.textSecondary} />
-          </TouchableOpacity>
           <TouchableOpacity onPress={() => router.push('/modal/configuracoes')} style={styles.headerIconBtn}>
             <Feather name="settings" size={20} color={Colors.textSecondary} />
           </TouchableOpacity>
@@ -191,13 +232,27 @@ export default function Dashboard() {
           </View>
         </View>
 
-        <View style={styles.scoreBreakdown}>
-          <View style={styles.scoreItem}>
-            <Text style={styles.scoreItemLabel}>Consistência</Text>
-            <Text style={[styles.scoreItemVal, { color: globalScore.consistency >= 60 ? Colors.green : Colors.orange }]}>
-              {globalScore.consistency}%
-            </Text>
+        {/* FOGO DO DUOLINGO */}
+        <GlowCard color={streakColor} style={{ marginTop: 12, marginBottom: 16 }}>
+          <View style={styles.streakContainer}>
+            <View style={styles.streakFire}>
+              <Feather name="zap" size={32} color={streakColor} />
+              <Text style={[styles.streakNumber, { color: streakColor }]}>{currentStreak}</Text>
+            </View>
+            <View>
+              <Text style={styles.streakTitle}>Streak</Text>
+              <Text style={styles.streakSubtitle}>
+                {currentStreak === 0
+                  ? 'Faça uma sessão hoje para acender o fogo!'
+                  : currentStreak === 1
+                    ? '1 dia de consistência!'
+                    : `${currentStreak} dias seguidos!`}
+              </Text>
+            </View>
           </View>
+        </GlowCard>
+
+        <View style={styles.scoreBreakdown}>
           <View style={styles.scoreItem}>
             <Text style={styles.scoreItemLabel}>Eficiência</Text>
             <Text style={[styles.scoreItemVal, { color: globalScore.efficiency >= 60 ? Colors.green : Colors.orange }]}>
@@ -212,8 +267,6 @@ export default function Dashboard() {
           </View>
         </View>
 
-
-
         <Text style={styles.sectionTitle}>Áreas</Text>
         <View style={styles.areasGrid}>
           {areas.map((area) => (
@@ -223,7 +276,7 @@ export default function Dashboard() {
               onPress={() => router.push(AREA_ROUTES[area] as never)}
               activeOpacity={0.75}
             >
-              <View style={[styles.areaHeader]}>
+              <View style={styles.areaHeader}>
                 <View style={[styles.areaIcon, { backgroundColor: AREA_COLORS[area] + '20' }]}>
                   <Feather name={AREA_ICONS[area] as never} size={18} color={AREA_COLORS[area]} />
                 </View>
@@ -309,8 +362,11 @@ const styles = StyleSheet.create({
   scoreItem: { flex: 1, backgroundColor: Colors.bgCard, borderRadius: 10, padding: 10, alignItems: 'center', borderWidth: 1, borderColor: Colors.border },
   scoreItemLabel: { fontSize: 10, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginBottom: 4 },
   scoreItemVal: { fontSize: 20, fontFamily: 'Inter_700Bold' },
-  quickBtn: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, backgroundColor: Colors.accent, borderRadius: 14, paddingVertical: 14, marginBottom: 20 },
-  quickBtnText: { color: Colors.white, fontSize: 16, fontFamily: 'Inter_700Bold' },
+  streakContainer: { flexDirection: 'row', alignItems: 'center', gap: 16, paddingVertical: 8 },
+  streakFire: { alignItems: 'center' },
+  streakNumber: { fontSize: 28, fontFamily: 'Inter_700Bold', marginTop: 4 },
+  streakTitle: { fontSize: 14, fontFamily: 'Inter_600SemiBold', color: Colors.text },
+  streakSubtitle: { fontSize: 12, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
   sectionTitle: { fontSize: 16, fontFamily: 'Inter_700Bold', color: Colors.text, marginBottom: 10, marginTop: 4 },
   areasGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, marginBottom: 16 },
   areaCard: { width: '48%', borderRadius: 14, padding: 14, borderWidth: 1, gap: 5 },
@@ -323,11 +379,6 @@ const styles = StyleSheet.create({
   weeklyTitle: { fontSize: 15, fontFamily: 'Inter_700Bold', color: Colors.text },
   weeklyStat: { fontSize: 13, color: Colors.textSecondary, fontFamily: 'Inter_400Regular', marginBottom: 6 },
   weeklyAction: { fontSize: 13, color: Colors.purple, fontFamily: 'Inter_600SemiBold' },
-  forecastCard: { borderRadius: 14, padding: 16, marginBottom: 14, borderWidth: 1, borderColor: Colors.border },
-  forecastRow: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  forecastItem: { flex: 1, borderRadius: 10, borderWidth: 1, padding: 12, alignItems: 'center' },
-  forecastPct: { fontSize: 22, fontFamily: 'Inter_700Bold' },
-  forecastLabel: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginTop: 2 },
   quoteCard: { flexDirection: 'row', alignItems: 'center', gap: 10, borderRadius: 12, padding: 14, marginBottom: 16, borderWidth: 1, borderColor: Colors.accentDim },
   quoteText: { flex: 1, fontSize: 13, fontFamily: 'Inter_400Regular', color: Colors.textSecondary, fontStyle: 'italic' },
   sessionRow: { flexDirection: 'row', alignItems: 'center', gap: 12, borderRadius: 10, padding: 12, marginBottom: 6, borderWidth: 1, borderColor: Colors.border },
@@ -336,5 +387,20 @@ const styles = StyleSheet.create({
   sessionMeta: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted, marginTop: 2 },
   sessionDate: { fontSize: 11, fontFamily: 'Inter_400Regular', color: Colors.textMuted },
   emptyText: { fontSize: 13, color: Colors.textMuted, fontFamily: 'Inter_400Regular', textAlign: 'center', marginVertical: 16 },
-  floatingSessaoBtn: { position: 'absolute', bottom: 30, alignSelf: 'center', width: 64, height: 64, borderRadius: 32, backgroundColor: Colors.accent, alignItems: 'center', justifyContent: 'center', shadowColor: Colors.accent, shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.4, shadowRadius: 16, elevation: 10 },
+  floatingSessaoBtn: {
+    position: 'absolute',
+    bottom: 30,
+    alignSelf: 'center',
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.accent,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    elevation: 10
+  },
 });

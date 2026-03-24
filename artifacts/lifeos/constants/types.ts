@@ -42,6 +42,14 @@ export interface Subject {
   semester?: string;
 }
 
+export interface ScheduleSlot {
+  id: string;
+  subjectId: string;
+  subjectName: string;
+  day: 'Segunda' | 'Terça' | 'Quarta' | 'Quinta' | 'Sexta' | 'Sábado' | 'Domingo';
+  time: string;
+}
+
 export interface WeightLog {
   id: string;
   weight: number;
@@ -82,18 +90,27 @@ export interface Flashcard {
   front: string;
   back: string;
   tag?: string;
+  lastReview?: string;
+  ease?: number;
   createdAt: string;
 }
 
 export interface ProgSession {
   id: string;
-  type: 'leetcode' | 'project' | 'study' | 'bug' | 'feature' | 'cert' | 'deploy';
+  type: 'leetcode' | 'study';
   projectId?: string;
   link?: string;
   language?: string;
   duration: number;
   output: string;
   date: string;
+}
+
+export interface ProjectItem {
+  id: string;
+  description: string;
+  link?: string;
+  createdAt: string;
 }
 
 export interface Project {
@@ -106,15 +123,34 @@ export interface Project {
   features: number;
   bugsFixed: number;
   createdAt: string;
+  featuresList?: ProjectItem[];
+  bugsList?: ProjectItem[];
+  deploysList?: ProjectItem[];
 }
 
 export interface Certification {
   id: string;
   name: string;
   provider: string;
+  description?: string;
+  hours?: number;
   status: 'studying' | 'completed' | 'planned';
   completedAt?: string;
   url?: string;
+}
+
+export interface Exercise {
+  name: string;
+  sets: number;
+  reps: number;
+  weight?: number;
+}
+
+export interface WorkoutTemplate {
+  id: string;
+  name: string;
+  exercises: Exercise[];
+  createdAt: string;
 }
 
 export interface Note {
@@ -166,9 +202,11 @@ export interface GlobalScore {
   redStreak: number;
   dayValid: boolean;
   avg7: number;
+  currentStreak: number;
 }
 
 export interface Settings {
+  name: string;
   quickMode: boolean;
   pin?: string;
   haptics: boolean;
@@ -177,6 +215,7 @@ export interface Settings {
   targetWeight?: number;
   height?: number;
   reserveTarget?: number;
+  planoPin?: string;
 }
 
 export interface Simulation {

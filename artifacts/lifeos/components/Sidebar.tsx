@@ -20,7 +20,7 @@ interface SidebarCtx {
   close: () => void;
 }
 
-const SidebarContext = createContext<SidebarCtx>({ open: () => {}, close: () => {} });
+const SidebarContext = createContext<SidebarCtx>({ open: () => { }, close: () => { } });
 
 export function useSidebar() {
   return useContext(SidebarContext);
@@ -36,10 +36,9 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { label: 'Início', icon: 'home', route: '/(tabs)/', color: Colors.accent },
   { label: 'Faculdade', icon: 'book', route: '/(tabs)/faculdade', color: Colors.cyan },
-  { label: 'Inglês Fluente', icon: 'mic', route: '/(tabs)/ingles', color: Colors.green },
-  { label: 'Mestre Programação', icon: 'code', route: '/(tabs)/programacao', color: Colors.purple },
+  { label: 'Inglês', icon: 'mic', route: '/(tabs)/ingles', color: Colors.green },
+  { label: 'Programação', icon: 'code', route: '/(tabs)/programacao', color: Colors.purple },
   { label: 'Shape & Saúde', icon: 'activity', route: '/(tabs)/shape', color: Colors.orange },
-  { label: 'Plano 2032', icon: 'star', route: '/(tabs)/plano', color: Colors.accent },
   { label: 'Mais', icon: 'plus-square', route: '/(tabs)/mais', color: Colors.textSecondary },
 ];
 
@@ -53,7 +52,8 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
   const { globalScore } = useApp();
   const segments = useSegments();
 
-  const currentRoute = '/' + (segments[segments.length - 1] ?? '');
+  const currentPath = '/' + segments.filter(s => s !== '(tabs)').join('/');
+  const isIndex = segments.length === 1 && segments[0] === '(tabs)';
 
   const open = useCallback(() => {
     setVisible(true);
@@ -97,10 +97,10 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
     globalScore.criticalMode
       ? Colors.red
       : globalScore.total >= 70
-      ? Colors.green
-      : globalScore.total >= 40
-      ? Colors.orange
-      : Colors.red;
+        ? Colors.green
+        : globalScore.total >= 40
+          ? Colors.orange
+          : Colors.red;
 
   return (
     <SidebarContext.Provider value={{ open, close }}>
@@ -144,9 +144,8 @@ export function SidebarProvider({ children }: { children: React.ReactNode }) {
 
               <View style={styles.navSection}>
                 {NAV_ITEMS.map((item) => {
-                  const isActive =
-                    currentRoute === item.route ||
-                    (item.route === '/(tabs)/' && segments[segments.length - 1] === 'index');
+                  const itemPath = item.route.replace('/(tabs)', '') || '/';
+                  const isActive = (itemPath === '/' && isIndex) || (itemPath !== '/' && currentPath.startsWith(itemPath));
                   return (
                     <TouchableOpacity
                       key={item.route}

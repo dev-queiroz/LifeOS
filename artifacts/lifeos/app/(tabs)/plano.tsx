@@ -1,4 +1,5 @@
 import { Feather } from '@expo/vector-icons';
+import { router } from 'expo-router';
 import React, { useMemo, useState } from 'react';
 import {
   Alert,
@@ -74,9 +75,11 @@ function AddGoalModal({ visible, phase, onClose, onSave }: {
 
 export default function PlanoScreen() {
   const insets = useSafeAreaInsets();
-  const { sessions, englishSessions, progSessions, planGoals, addPlanGoal, updatePlanGoal, deletePlanGoal } = useApp();
+  const { sessions, englishSessions, progSessions, planGoals, addPlanGoal, updatePlanGoal, deletePlanGoal, settings } = useApp();
   const [selectedPhase, setSelectedPhase] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
   const [goalModal, setGoalModal] = useState<1 | 2 | 3 | 4 | 5 | null>(null);
+  const [pinInput, setPinInput] = useState('');
+  const [isAuthorized, setIsAuthorized] = useState(!settings.planoPin);
 
   const phaseProgress = useMemo(
     () => planProgress(sessions, englishSessions, progSessions),
@@ -90,6 +93,31 @@ export default function PlanoScreen() {
 
   const overallProgress = Math.round(phaseProgress.reduce((a, b) => a + b, 0) / 5);
   const yearsLeft = 2032 - new Date().getFullYear();
+
+  if (settings.planoPin && !isAuthorized) {
+    return (
+      <View style={[styles.root, { justifyContent: 'center', alignItems: 'center', padding: 20, paddingTop: insets.top }]}>
+        <Feather name="lock" size={48} color={Colors.accent} style={{ marginBottom: 20 }} />
+        <Text style={styles.modalTitle}>Área Protegida</Text>
+        <Text style={[styles.subtitle, { textAlign: 'center', marginBottom: 30 }]}>Digite o PIN para acessar seu Plano 2032.</Text>
+        <TextInput
+          style={[styles.input, { width: 140, textAlign: 'center', fontSize: 24, letterSpacing: 8, height: 60 }]}
+          value={pinInput}
+          onChangeText={(txt) => {
+            setPinInput(txt);
+            if (txt === settings.planoPin) setIsAuthorized(true);
+          }}
+          keyboardType="numeric"
+          maxLength={4}
+          secureTextEntry
+          autoFocus
+        />
+        <TouchableOpacity onPress={() => router.back()} style={{ marginTop: 40 }}>
+          <Text style={{ color: Colors.textMuted, fontSize: 16 }}>Voltar</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>

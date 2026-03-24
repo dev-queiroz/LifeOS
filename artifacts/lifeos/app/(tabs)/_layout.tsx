@@ -20,6 +20,7 @@ export default function TabLayout() {
         <Stack.Screen name="programacao" />
         <Stack.Screen name="shape" />
         <Stack.Screen name="plano" />
+        <Stack.Screen name="financas" />
         <Stack.Screen name="mais" />
       </Stack>
     </SidebarProvider>

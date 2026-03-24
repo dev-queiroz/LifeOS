@@ -8,18 +8,22 @@ interface EmptyStateProps {
   icon: keyof typeof Feather.glyphMap;
   title: string;
   subtitle?: string;
+  description?: string;
+  color?: string;
   actionLabel?: string;
   onAction?: () => void;
 }
 
-export function EmptyState({ icon, title, subtitle, actionLabel, onAction }: EmptyStateProps) {
+export function EmptyState({ icon, title, subtitle, description, color, actionLabel, onAction }: EmptyStateProps) {
+  const displaySubtitle = subtitle || description;
+  
   return (
     <View style={styles.container}>
-      <View style={styles.iconWrap}>
-        <Feather name={icon} size={32} color={Colors.textMuted} />
+      <View style={[styles.iconWrap, color ? { backgroundColor: color + '20' } : {}]}>
+        <Feather name={icon} size={32} color={color || Colors.textMuted} />
       </View>
       <Text style={styles.title}>{title}</Text>
-      {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+      {displaySubtitle ? <Text style={styles.subtitle}>{displaySubtitle}</Text> : null}
       {actionLabel && onAction ? (
         <Pressable onPress={onAction} style={styles.action}>
           <Text style={styles.actionText}>{actionLabel}</Text>
